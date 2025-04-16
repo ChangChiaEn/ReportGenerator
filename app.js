@@ -153,31 +153,28 @@ document.addEventListener('DOMContentLoaded', function() {
         const loadingMessage = document.getElementById('loading-message');
         loadingMessage.textContent = '連接到分析伺服器中...';
         
-        // 這裡是模擬API調用，實際應用需要替換為真實API端點
+        // Colab API 端點
         const colabAPIEndpoint = 'https://cellpainting-api.james-chang-04c.workers.dev/analyze';
         
-        // 模擬API調用延遲
+        // 注釋掉模擬代碼
+        /*
         setTimeout(() => {
             loadingMessage.textContent = '正在分析數據...';
             
-            // 模擬處理時間
             setTimeout(() => {
                 loadingMessage.textContent = '生成報告中...';
                 
-                // 模擬報告生成完成
                 setTimeout(() => {
-                    // 隱藏載入區塊，顯示結果區塊
                     loadingSection.classList.add('hidden');
                     resultSection.classList.remove('hidden');
                     
-                    // 顯示模擬結果
                     displayDummyResults();
                 }, 3000);
             }, 5000);
         }, 2000);
+        */
         
-        // 實際API調用代碼（已注釋掉）
-        /*
+        // 啟用實際API調用代碼
         fetch(colabAPIEndpoint, {
             method: 'POST',
             body: formData
@@ -201,44 +198,75 @@ document.addEventListener('DOMContentLoaded', function() {
             loadingSection.classList.add('hidden');
             alert('分析過程中發生錯誤: ' + error.message);
         });
-        */
     }
     
-    // 顯示模擬結果
-    function displayDummyResults() {
-        const compoundName = document.getElementById('compound-name').value;
-        const targetProtein = document.getElementById('target-protein').value;
+    // 顯示 API 返回的結果
+function displayResults(data) {
+    const compoundName = document.getElementById('compound-name').value;
+    const targetProtein = document.getElementById('target-protein').value;
+    
+    // 構建 HTML 內容
+    let resultsHTML = `
+        <div class="mb-4 p-4 bg-green-100 border-l-4 border-green-500 rounded">
+            <p class="text-lg"><i class="fas fa-check-circle text-green-600 mr-2"></i>${data.message || '報告已成功生成!'}</p>
+        </div>
+        <div class="mb-4">
+            <h3 class="font-medium text-lg mb-2">報告摘要</h3>
+            <p>我們完成了對 ${compoundName} 在 ${targetProtein} 表達上的影響分析。報告包含三個主要部分：氣流率分析、顆粒分布均勻性分析以及濃度-響應分析。</p>
+        </div>`;
+    
+    // 添加圖表預覽（如果有）
+    if (data.chartPreviews && data.chartPreviews.length > 0) {
+        resultsHTML += `
+        <div class="mb-4">
+            <h3 class="font-medium text-lg mb-2">分析圖表</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">`;
         
-        resultContent.innerHTML = `
-            <div class="mb-4 p-4 bg-green-100 border-l-4 border-green-500 rounded">
-                <p class="text-lg"><i class="fas fa-check-circle text-green-600 mr-2"></i>報告已成功生成!</p>
+        data.chartPreviews.forEach(chart => {
+            resultsHTML += `
+                <div class="border rounded-md p-2">
+                    <img src="${chart.image}" alt="${chart.caption}" class="w-full h-auto">
+                    <p class="text-sm text-center mt-2">${chart.caption}</p>
+                </div>`;
+        });
+        
+        resultsHTML += `
             </div>
-            <div class="mb-4">
-                <h3 class="font-medium text-lg mb-2">報告摘要</h3>
-                <p>我們完成了對 ${compoundName} 在 ${targetProtein} 表達上的影響分析。報告包含三個主要部分：氣流率分析、顆粒分布均勻性分析以及濃度-響應分析。</p>
-            </div>
-            <div class="mb-4">
-                <h3 class="font-medium text-lg mb-2">主要發現</h3>
-                <ul class="list-disc pl-6">
-                    <li>氣流率分析表明霧化器能有效模擬新生兒呼吸頻率</li>
-                    <li>顆粒分布分析證實了給藥均勻性</li>
-                    <li>${compoundName} 能有效提高 ${targetProtein} 的表達水平</li>
-                </ul>
-            </div>
-            <div class="mb-4">
-                <h3 class="font-medium text-lg mb-2">報告預覽</h3>
-                <div class="border border-gray-300 rounded-md p-4 bg-gray-50">
-                    <h4 class="font-medium">摘要</h4>
-                    <p class="text-sm text-gray-700">本研究評估了霧化給藥系統在模擬新生兒給藥方案中的可行性，並分析了${compoundName}對${targetProtein}表達的影響...</p>
-                    <h4 class="font-medium mt-2">引言</h4>
-                    <p class="text-sm text-gray-700">${compoundName}是一種重要的肺表面活性劑，在新生兒呼吸窘迫症候群的治療中具有重要作用...</p>
-                    <div class="mt-2 text-center text-gray-500">
-                        <i class="fas fa-ellipsis-h"></i>
-                    </div>
+        </div>`;
+    }
+    
+    // 添加報告預覽
+    if (data.reportPreview) {
+        resultsHTML += `
+        <div class="mb-4">
+            <h3 class="font-medium text-lg mb-2">報告預覽</h3>
+            <div class="border border-gray-300 rounded-md p-4 bg-gray-50 whitespace-pre-line">
+                ${data.reportPreview}
+                <div class="mt-2 text-center text-gray-500">
+                    <i class="fas fa-ellipsis-h"></i>
                 </div>
             </div>
-        `;
+        </div>`;
     }
+    
+    // 更新 DOM
+    resultContent.innerHTML = resultsHTML;
+    
+    // 設置下載按鈕的事件處理程序
+    if (data.reportPath) {
+        downloadReportBtn.onclick = function() {
+            // 獲取 Colab API 下載端點的基礎 URL
+            const apiBaseUrl = new URL(colabAPIEndpoint).origin;
+            // 構建完整的下載 URL
+            const downloadUrl = `${apiBaseUrl}/download/${data.reportPath}`;
+            // 打開下載鏈接
+            window.open(downloadUrl, '_blank');
+        };
+        downloadReportBtn.disabled = false;
+    } else {
+        downloadReportBtn.disabled = true;
+    }
+}
     
     // 下載報告
     downloadReportBtn.addEventListener('click', function() {
