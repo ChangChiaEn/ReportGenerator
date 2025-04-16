@@ -28,6 +28,12 @@ document.addEventListener('DOMContentLoaded', function() {
     let uploadedDataFiles = [];
     let uploadedImageFiles = [];
     
+    // API 端點
+    const colabAPIEndpoint = 'https://cellpainting-api.james-chang-04c.workers.dev/analyze';
+    
+    // 初始化下載按鈕 - 開始時禁用
+    downloadReportBtn.disabled = true;
+    
     // 處理模態對話框的顯示和隱藏
     aboutLink.addEventListener('click', function(e) {
         e.preventDefault();
@@ -153,28 +159,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const loadingMessage = document.getElementById('loading-message');
         loadingMessage.textContent = '連接到分析伺服器中...';
         
-        // Colab API 端點
-        const colabAPIEndpoint = 'https://cellpainting-api.james-chang-04c.workers.dev/analyze';
-        
-        // 注釋掉模擬代碼
-        /*
-        setTimeout(() => {
-            loadingMessage.textContent = '正在分析數據...';
-            
-            setTimeout(() => {
-                loadingMessage.textContent = '生成報告中...';
-                
-                setTimeout(() => {
-                    loadingSection.classList.add('hidden');
-                    resultSection.classList.remove('hidden');
-                    
-                    displayDummyResults();
-                }, 3000);
-            }, 5000);
-        }, 2000);
-        */
-        
-        // 啟用實際API調用代碼
+        // 使用實際 API 調用
         fetch(colabAPIEndpoint, {
             method: 'POST',
             body: formData
@@ -186,6 +171,9 @@ document.addEventListener('DOMContentLoaded', function() {
             return response.json();
         })
         .then(data => {
+            // 更新載入訊息
+            loadingMessage.textContent = '處理完成';
+            
             // 隱藏載入區塊，顯示結果區塊
             loadingSection.classList.add('hidden');
             resultSection.classList.remove('hidden');
@@ -201,96 +189,81 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // 顯示 API 返回的結果
-function displayResults(data) {
-    const compoundName = document.getElementById('compound-name').value;
-    const targetProtein = document.getElementById('target-protein').value;
-    
-    // 構建 HTML 內容
-    let resultsHTML = `
-        <div class="mb-4 p-4 bg-green-100 border-l-4 border-green-500 rounded">
-            <p class="text-lg"><i class="fas fa-check-circle text-green-600 mr-2"></i>${data.message || '報告已成功生成!'}</p>
-        </div>
-        <div class="mb-4">
-            <h3 class="font-medium text-lg mb-2">報告摘要</h3>
-            <p>我們完成了對 ${compoundName} 在 ${targetProtein} 表達上的影響分析。報告包含三個主要部分：氣流率分析、顆粒分布均勻性分析以及濃度-響應分析。</p>
-        </div>`;
-    
-    // 添加圖表預覽（如果有）
-    if (data.chartPreviews && data.chartPreviews.length > 0) {
-        resultsHTML += `
-        <div class="mb-4">
-            <h3 class="font-medium text-lg mb-2">分析圖表</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">`;
+    function displayResults(data) {
+        const compoundName = document.getElementById('compound-name').value;
+        const targetProtein = document.getElementById('target-protein').value;
         
-        data.chartPreviews.forEach(chart => {
+        // 構建 HTML 內容
+        let resultsHTML = `
+            <div class="mb-4 p-4 bg-green-100 border-l-4 border-green-500 rounded">
+                <p class="text-lg"><i class="fas fa-check-circle text-green-600 mr-2"></i>${data.message || '報告已成功生成!'}</p>
+            </div>
+            <div class="mb-4">
+                <h3 class="font-medium text-lg mb-2">報告摘要</h3>
+                <p>我們完成了對 ${compoundName} 在 ${targetProtein} 表達上的影響分析。報告包含三個主要部分：氣流率分析、顆粒分布均勻性分析以及濃度-響應分析。</p>
+            </div>`;
+        
+        // 添加圖表預覽（如果有）
+        if (data.chartPreviews && data.chartPreviews.length > 0) {
             resultsHTML += `
-                <div class="border rounded-md p-2">
-                    <img src="${chart.image}" alt="${chart.caption}" class="w-full h-auto">
-                    <p class="text-sm text-center mt-2">${chart.caption}</p>
-                </div>`;
-        });
-        
-        resultsHTML += `
-            </div>
-        </div>`;
-    }
-    
-    // 添加報告預覽
-    if (data.reportPreview) {
-        resultsHTML += `
-        <div class="mb-4">
-            <h3 class="font-medium text-lg mb-2">報告預覽</h3>
-            <div class="border border-gray-300 rounded-md p-4 bg-gray-50 whitespace-pre-line">
-                ${data.reportPreview}
-                <div class="mt-2 text-center text-gray-500">
-                    <i class="fas fa-ellipsis-h"></i>
-                </div>
-            </div>
-        </div>`;
-    }
-    
-    // 更新 DOM
-    resultContent.innerHTML = resultsHTML;
-    
-    // 設置下載按鈕的事件處理程序
-    if (data.reportPath) {
-        downloadReportBtn.onclick = function() {
-            // 獲取 Colab API 下載端點的基礎 URL
-            const apiBaseUrl = new URL(colabAPIEndpoint).origin;
-            // 構建完整的下載 URL
-            const downloadUrl = `${apiBaseUrl}/download/${data.reportPath}`;
-            // 打開下載鏈接
-            window.open(downloadUrl, '_blank');
-        };
-        downloadReportBtn.disabled = false;
-    } else {
-        downloadReportBtn.disabled = true;
-    }
-}
-    
-    // 下載報告
-    // 初始化時禁用下載按鈕
-    downloadReportBtn.disabled = true;
-
-    // 在 displayResults 函數中設置下載功能
-    if (data.reportPath) {
-        downloadReportBtn.onclick = function() {
-            // 獲取 Colab API 下載端點的基礎 URL
-            // 注意：這裡需要使用 Colab 的原始 URL，而非 Worker URL
-            const colabUrl = COLAB_API_URL; // 從 Worker 環境變量獲取
-            const downloadUrl = `${colabUrl.split('/analyze')[0]}/download/${data.reportPath}`;
+            <div class="mb-4">
+                <h3 class="font-medium text-lg mb-2">分析圖表</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">`;
             
-            window.open(downloadUrl, '_blank');
-        };
-        downloadReportBtn.disabled = false;
-    } else {
-        downloadReportBtn.disabled = true;
+            data.chartPreviews.forEach(chart => {
+                resultsHTML += `
+                    <div class="border rounded-md p-2">
+                        <img src="${chart.image}" alt="${chart.caption}" class="w-full h-auto">
+                        <p class="text-sm text-center mt-2">${chart.caption}</p>
+                    </div>`;
+            });
+            
+            resultsHTML += `
+                </div>
+            </div>`;
+        }
+        
+        // 添加報告預覽
+        if (data.reportPreview) {
+            resultsHTML += `
+            <div class="mb-4">
+                <h3 class="font-medium text-lg mb-2">報告預覽</h3>
+                <div class="border border-gray-300 rounded-md p-4 bg-gray-50 whitespace-pre-line">
+                    ${data.reportPreview}
+                    <div class="mt-2 text-center text-gray-500">
+                        <i class="fas fa-ellipsis-h"></i>
+                    </div>
+                </div>
+            </div>`;
+        }
+        
+        // 更新 DOM
+        resultContent.innerHTML = resultsHTML;
+        
+        // 設置下載按鈕的事件處理程序
+        if (data.reportPath) {
+            // 清除之前的事件處理程序
+            downloadReportBtn.onclick = null;
+            
+            // 設置新的事件處理程序
+            downloadReportBtn.onclick = function() {
+                // 獲取 Colab API 下載端點的基礎 URL
+                const apiBaseUrl = new URL(colabAPIEndpoint).origin;
+                // 構建完整的下載 URL
+                const downloadUrl = `${apiBaseUrl}/download/${data.reportPath}`;
+                // 打開下載鏈接
+                window.open(downloadUrl, '_blank');
+            };
+            
+            // 啟用下載按鈕
+            downloadReportBtn.disabled = false;
+        } else {
+            // 禁用下載按鈕
+            downloadReportBtn.disabled = true;
+        }
     }
-    // downloadReportBtn.addEventListener('click', function() {
-    //     alert('報告下載功能將在連接到實際API後啟用');
-    // });
     
-    // 開始新分析
+    // 開始新分析按鈕事件處理
     newAnalysisBtn.addEventListener('click', function() {
         // 重置文件上傳
         dataFilesInput.value = '';
@@ -302,5 +275,31 @@ function displayResults(data) {
         
         // 隱藏結果區塊
         resultSection.classList.add('hidden');
+        
+        // 禁用下載按鈕
+        downloadReportBtn.disabled = true;
+        downloadReportBtn.onclick = null;
     });
+    
+    // 初始化頁面
+    function initializePage() {
+        // 檢查 URL 參數是否有指定的 API 端點
+        const urlParams = new URLSearchParams(window.location.search);
+        const apiEndpoint = urlParams.get('api');
+        
+        if (apiEndpoint) {
+            // 如果在 URL 中找到 API 端點，就更新 colabAPIEndpoint 變數
+            colabAPIEndpoint = decodeURIComponent(apiEndpoint);
+            console.log('使用 URL 參數中的 API 端點:', colabAPIEndpoint);
+            
+            // 可選：顯示連接狀態
+            const statusElement = document.createElement('div');
+            statusElement.className = 'mt-4 p-2 bg-blue-100 text-blue-700 rounded';
+            statusElement.innerHTML = `<i class="fas fa-info-circle mr-2"></i>已連接到 API 端點: ${colabAPIEndpoint}`;
+            document.querySelector('main .container').prepend(statusElement);
+        }
+    }
+    
+    // 頁面載入後執行初始化
+    initializePage();
 });
