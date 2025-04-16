@@ -269,9 +269,26 @@ function displayResults(data) {
 }
     
     // 下載報告
-    downloadReportBtn.addEventListener('click', function() {
-        alert('報告下載功能將在連接到實際API後啟用');
-    });
+    // 初始化時禁用下載按鈕
+    downloadReportBtn.disabled = true;
+
+    // 在 displayResults 函數中設置下載功能
+    if (data.reportPath) {
+        downloadReportBtn.onclick = function() {
+            // 獲取 Colab API 下載端點的基礎 URL
+            // 注意：這裡需要使用 Colab 的原始 URL，而非 Worker URL
+            const colabUrl = COLAB_API_URL; // 從 Worker 環境變量獲取
+            const downloadUrl = `${colabUrl.split('/analyze')[0]}/download/${data.reportPath}`;
+            
+            window.open(downloadUrl, '_blank');
+        };
+        downloadReportBtn.disabled = false;
+    } else {
+        downloadReportBtn.disabled = true;
+    }
+    // downloadReportBtn.addEventListener('click', function() {
+    //     alert('報告下載功能將在連接到實際API後啟用');
+    // });
     
     // 開始新分析
     newAnalysisBtn.addEventListener('click', function() {
