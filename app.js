@@ -154,7 +154,7 @@ document.addEventListener('DOMContentLoaded', function() {
         loadingMessage.textContent = '連接到分析伺服器中...';
         
         // 這裡是模擬API調用，實際應用需要替換為真實API端點
-        const colabAPIEndpoint = 'https://your-colab-api-endpoint.com/analyze';
+        const colabAPIEndpoint = 'https://cellpainting-api.james-chang-04c.workers.dev/analyze';
         
         // 模擬API調用延遲
         setTimeout(() => {
