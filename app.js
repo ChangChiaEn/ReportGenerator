@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // 頁面頁籤切換相關元素
     const mainTab = document.getElementById('main-tab');
     const particleTab = document.getElementById('particle-tab');
-    const mainSection = document.querySelector('.bg-white.rounded-lg.shadow-md.p-6.mb-6:not(#particle-section)');
+    const mainSection = document.getElementById('main-section');
     const particleSection = document.getElementById('particle-section');
     
     // 文件上傳預覽相關元素
@@ -46,8 +46,8 @@ document.addEventListener('DOMContentLoaded', function() {
     let uploadedParticleImageFiles = [];
     
     // API 端點
-    const colabAPIEndpoint = 'https://cellpainting-api.james-chang-04c.workers.dev/analyze';
-    const particleAPIEndpoint = 'https://cellpainting-api.james-chang-04c.workers.dev/analyze-particle';
+    let colabAPIEndpoint = 'https://cellpainting-api.james-chang-04c.workers.dev/analyze';
+    let particleAPIEndpoint = 'https://cellpainting-api.james-chang-04c.workers.dev/analyze-particle';
     
     // 初始化下載按鈕 - 開始時禁用
     downloadReportBtn.disabled = true;
@@ -81,67 +81,119 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // 頁籤切換功能
-    mainTab.addEventListener('click', function(e) {
-        e.preventDefault();
-        mainTab.classList.add('bg-blue-700');
-        particleTab.classList.remove('bg-blue-700');
+    function switchToMainTab() {
+        // 更新卡片樣式
+        mainTab.classList.add('active');
+        mainTab.classList.add('border-blue-500');
+        mainTab.classList.remove('border-transparent');
+        
+        // 確保主頁籤圖標使用正確顏色
+        const mainIcon = mainTab.querySelector('div:first-child');
+        mainIcon.classList.remove('bg-gray-100', 'text-gray-600');
+        mainIcon.classList.add('bg-blue-100', 'text-blue-600');
+        
+        // 更新另一個卡片
+        particleTab.classList.remove('active');
+        particleTab.classList.remove('border-blue-500');
+        particleTab.classList.add('border-transparent');
+        
+        // 確保另一個頁籤圖標使用灰色
+        const particleIcon = particleTab.querySelector('div:first-child');
+        particleIcon.classList.remove('bg-blue-100', 'text-blue-600');
+        particleIcon.classList.add('bg-gray-100', 'text-gray-600');
+        
+        // 顯示對應區塊
         mainSection.classList.remove('hidden');
         particleSection.classList.add('hidden');
+        
+        // 行動裝置選單
+        document.getElementById('mobile-menu').classList.add('hidden');
+    }
+    
+    function switchToParticleTab() {
+        // 更新卡片樣式
+        particleTab.classList.add('active');
+        particleTab.classList.add('border-blue-500');
+        particleTab.classList.remove('border-transparent');
+        
+        // 確保粒子頁籤圖標使用正確顏色
+        const particleIcon = particleTab.querySelector('div:first-child');
+        particleIcon.classList.remove('bg-gray-100', 'text-gray-600');
+        particleIcon.classList.add('bg-blue-100', 'text-blue-600');
+        
+        // 更新另一個卡片
+        mainTab.classList.remove('active');
+        mainTab.classList.remove('border-blue-500');
+        mainTab.classList.add('border-transparent');
+        
+        // 確保另一個頁籤圖標使用灰色
+        const mainIcon = mainTab.querySelector('div:first-child');
+        mainIcon.classList.remove('bg-blue-100', 'text-blue-600');
+        mainIcon.classList.add('bg-gray-100', 'text-gray-600');
+        
+        // 顯示對應區塊
+        particleSection.classList.remove('hidden');
+        mainSection.classList.add('hidden');
+        
+        // 行動裝置選單
+        document.getElementById('mobile-menu').classList.add('hidden');
+    }
+    
+    mainTab.addEventListener('click', function(e) {
+        e.preventDefault();
+        switchToMainTab();
     });
     
     particleTab.addEventListener('click', function(e) {
         e.preventDefault();
-        particleTab.classList.add('bg-blue-700');
-        mainTab.classList.remove('bg-blue-700');
-        particleSection.classList.remove('hidden');
-        mainSection.classList.add('hidden');
+        switchToParticleTab();
     });
     
     // 處理數據文件上傳預覽
     dataFilesInput.addEventListener('change', function() {
         uploadedDataFiles = Array.from(this.files);
-        updateDataFilesList();
+        updateFilesList(uploadedDataFiles, dataFilesPreview, dataFilesList);
     });
     
     // 處理圖片文件上傳預覽
     imageFilesInput.addEventListener('change', function() {
         uploadedImageFiles = Array.from(this.files);
-        updateImageFilesList();
+        updateImageList(uploadedImageFiles, imageFilesPreview, imageFilesList);
     });
     
     // 處理粒子分析數據文件上傳預覽
     particleDataFilesInput.addEventListener('change', function() {
         uploadedParticleDataFiles = Array.from(this.files);
-        updateParticleDataFilesList();
+        updateFilesList(uploadedParticleDataFiles, particleDataFilesPreview, particleDataFilesList);
     });
     
     // 處理粒子分析圖片文件上傳預覽
     particleImageFilesInput.addEventListener('change', function() {
         uploadedParticleImageFiles = Array.from(this.files);
-        updateParticleImageFilesList();
+        updateImageList(uploadedParticleImageFiles, particleImageFilesPreview, particleImageFilesList);
     });
     
-    // 更新數據文件列表顯示
-    function updateDataFilesList() {
-        if (uploadedDataFiles.length > 0) {
-            dataFilesPreview.classList.remove('hidden');
-            dataFilesList.innerHTML = '';
-            uploadedDataFiles.forEach(file => {
+    // 更新文件列表顯示
+    function updateFilesList(files, previewElement, listElement) {
+        if (files.length > 0) {
+            previewElement.classList.remove('hidden');
+            listElement.innerHTML = '';
+            files.forEach(file => {
                 const li = document.createElement('li');
                 li.textContent = file.name;
-                dataFilesList.appendChild(li);
+                listElement.appendChild(li);
             });
         } else {
-            dataFilesPreview.classList.add('hidden');
+            previewElement.classList.add('hidden');
         }
     }
     
-    // 更新圖片文件列表顯示
-    function updateImageFilesList() {
-        if (uploadedImageFiles.length > 0) {
-            imageFilesPreview.classList.remove('hidden');
-            imageFilesList.innerHTML = '';
-            uploadedImageFiles.forEach(file => {
+    // 更新圖片列表顯示
+    function updateImageList(files, previewElement, listElement) {
+        if (files.length > 0) {
+            previewElement.classList.remove('hidden');
+            listElement.innerHTML = '';
+            files.forEach(file => {
                 const div = document.createElement('div');
                 div.className = 'relative';
                 
@@ -156,52 +208,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 div.appendChild(img);
                 div.appendChild(span);
-                imageFilesList.appendChild(div);
+                listElement.appendChild(div);
             });
         } else {
-            imageFilesPreview.classList.add('hidden');
-        }
-    }
-    
-    // 更新粒子分析數據文件列表顯示
-    function updateParticleDataFilesList() {
-        if (uploadedParticleDataFiles.length > 0) {
-            particleDataFilesPreview.classList.remove('hidden');
-            particleDataFilesList.innerHTML = '';
-            uploadedParticleDataFiles.forEach(file => {
-                const li = document.createElement('li');
-                li.textContent = file.name;
-                particleDataFilesList.appendChild(li);
-            });
-        } else {
-            particleDataFilesPreview.classList.add('hidden');
-        }
-    }
-    
-    // 更新粒子分析圖片文件列表顯示
-    function updateParticleImageFilesList() {
-        if (uploadedParticleImageFiles.length > 0) {
-            particleImageFilesPreview.classList.remove('hidden');
-            particleImageFilesList.innerHTML = '';
-            uploadedParticleImageFiles.forEach(file => {
-                const div = document.createElement('div');
-                div.className = 'relative';
-                
-                const img = document.createElement('img');
-                img.src = URL.createObjectURL(file);
-                img.className = 'w-full h-24 object-cover rounded border border-gray-300';
-                img.alt = file.name;
-                
-                const span = document.createElement('span');
-                span.className = 'block text-xs text-center mt-1 truncate';
-                span.textContent = file.name;
-                
-                div.appendChild(img);
-                div.appendChild(span);
-                particleImageFilesList.appendChild(div);
-            });
-        } else {
-            particleImageFilesPreview.classList.add('hidden');
+            previewElement.classList.add('hidden');
         }
     }
     
@@ -214,6 +224,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // 顯示載入區塊
         loadingSection.classList.remove('hidden');
+        document.querySelector('.loading-progress').style.width = '5%';
         
         // 收集表單數據
         const experimentData = {
@@ -238,8 +249,11 @@ document.addEventListener('DOMContentLoaded', function() {
             formData.append('imageFiles', file);
         });
         
-        // 發送到 Colab API
-        connectToColabAPI(formData, colabAPIEndpoint);
+        // 模擬載入進度
+        simulateProgress();
+        
+        // 發送到 API
+        connectToAPI(formData, colabAPIEndpoint);
     });
     
     // 處理粒子分析按鈕點擊
@@ -251,15 +265,11 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // 顯示載入區塊
         loadingSection.classList.remove('hidden');
+        document.querySelector('.loading-progress').style.width = '5%';
         
         // 收集表單數據
         const experimentData = {
-            compoundName: document.getElementById('particle-compound-name').value,
-            targetProtein: document.getElementById('particle-target-protein').value,
-            cellType: document.getElementById('particle-cell-type').value,
-            treatmentTime: document.getElementById('particle-treatment-time').value,
-            experimentDescription: document.getElementById('particle-experiment-description').value,
-            channel: document.getElementById('particle-channel').value
+            experimentDescription: document.getElementById('particle-experiment-description').value
         };
         
         // 準備表單數據
@@ -277,12 +287,29 @@ document.addEventListener('DOMContentLoaded', function() {
             formData.append('imageFiles', file);
         });
         
-        // 發送到 粒子分析 API
-        connectToColabAPI(formData, particleAPIEndpoint);
+        // 模擬載入進度
+        simulateProgress();
+        
+        // 發送到 API
+        connectToAPI(formData, particleAPIEndpoint);
     });
     
-    // 連接到 Colab API
-    function connectToColabAPI(formData, endpoint) {
+    // 模擬載入進度
+    function simulateProgress() {
+        const progressBar = document.querySelector('.loading-progress');
+        let width = 5;
+        const interval = setInterval(() => {
+            if (width >= 90) {
+                clearInterval(interval);
+            } else {
+                width += Math.random() * 10;
+                progressBar.style.width = width + '%';
+            }
+        }, 700);
+    }
+    
+    // 連接到 API
+    function connectToAPI(formData, endpoint) {
         // 更新載入訊息
         const loadingMessage = document.getElementById('loading-message');
         loadingMessage.textContent = '連接到分析伺服器中...';
@@ -301,13 +328,16 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(data => {
             // 更新載入訊息
             loadingMessage.textContent = '處理完成';
+            document.querySelector('.loading-progress').style.width = '100%';
             
-            // 隱藏載入區塊，顯示結果區塊
-            loadingSection.classList.add('hidden');
-            resultSection.classList.remove('hidden');
-            
-            // 處理並顯示結果
-            displayResults(data);
+            // 延遲隱藏載入區塊，顯示結果區塊
+            setTimeout(() => {
+                loadingSection.classList.add('hidden');
+                resultSection.classList.remove('hidden');
+                
+                // 處理並顯示結果
+                displayResults(data);
+            }, 500);
         })
         .catch(error => {
             console.error('錯誤:', error);
@@ -325,8 +355,8 @@ document.addEventListener('DOMContentLoaded', function() {
         let compoundName, targetProtein;
         
         if (isParticleAnalysis) {
-            compoundName = document.getElementById('particle-compound-name').value;
-            targetProtein = document.getElementById('particle-target-protein').value;
+            compoundName = "粒子分析";
+            targetProtein = "";
         } else {
             compoundName = document.getElementById('compound-name').value;
             targetProtein = document.getElementById('target-protein').value;
@@ -334,16 +364,19 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // 構建 HTML 內容
         let resultsHTML = `
-            <div class="mb-4 p-4 bg-green-100 border-l-4 border-green-500 rounded">
-                <p class="text-lg"><i class="fas fa-check-circle text-green-600 mr-2"></i>${data.message || '報告已成功生成!'}</p>
+            <div class="mb-6 p-4 bg-green-100 border-l-4 border-green-500 rounded">
+                <p class="text-lg flex items-center">
+                    <i class="fas fa-check-circle text-green-600 mr-2"></i>
+                    ${data.message || '報告已成功生成!'}
+                </p>
             </div>
-            <div class="mb-4">
-                <h3 class="font-medium text-lg mb-2">報告摘要</h3>`;
+            <div class="mb-6">
+                <h3 class="text-xl font-medium text-gray-800 mb-3">報告摘要</h3>`;
         
         if (isParticleAnalysis) {
-            resultsHTML += `<p>我們完成了對 ${compoundName} 在流道中的粒子分布均勻性分析。報告包含各樣本的變異係數(CV)分析，可用於評估霧化均勻性。</p>`;
+            resultsHTML += `<p class="text-gray-600">我們完成了粒子分布均勻性分析。報告包含各樣本的變異係數(CV)分析，可用於評估霧化均勻性。</p>`;
         } else {
-            resultsHTML += `<p>我們完成了對 ${compoundName} 在 ${targetProtein} 表達上的影響分析。報告包含三個主要部分：氣流率分析、顆粒分布均勻性分析以及濃度-響應分析。</p>`;
+            resultsHTML += `<p class="text-gray-600">我們完成了對 ${compoundName} 在 ${targetProtein} 表達上的影響分析。報告包含三個主要部分：氣流率分析、顆粒分布均勻性分析以及濃度-響應分析。</p>`;
         }
         
         resultsHTML += `</div>`;
@@ -351,15 +384,15 @@ document.addEventListener('DOMContentLoaded', function() {
         // 添加圖表預覽（如果有）
         if (data.chartPreviews && data.chartPreviews.length > 0) {
             resultsHTML += `
-            <div class="mb-4">
-                <h3 class="font-medium text-lg mb-2">分析圖表</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">`;
+            <div class="mb-6">
+                <h3 class="text-xl font-medium text-gray-800 mb-3">分析圖表</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">`;
             
             data.chartPreviews.forEach(chart => {
                 resultsHTML += `
-                    <div class="border rounded-md p-2">
+                    <div class="border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300">
                         <img src="${chart.image}" alt="${chart.caption}" class="w-full h-auto">
-                        <p class="text-sm text-center mt-2">${chart.caption}</p>
+                        <p class="text-sm text-center p-3 text-gray-600">${chart.caption}</p>
                     </div>`;
             });
             
@@ -371,11 +404,11 @@ document.addEventListener('DOMContentLoaded', function() {
         // 添加報告預覽
         if (data.reportPreview) {
             resultsHTML += `
-            <div class="mb-4">
-                <h3 class="font-medium text-lg mb-2">報告預覽</h3>
-                <div class="border border-gray-300 rounded-md p-4 bg-gray-50 whitespace-pre-line">
+            <div class="mb-6">
+                <h3 class="text-xl font-medium text-gray-800 mb-3">報告預覽</h3>
+                <div class="border border-gray-300 rounded-lg p-6 bg-gray-50 whitespace-pre-line text-gray-700">
                     ${data.reportPreview}
-                    <div class="mt-2 text-center text-gray-500">
+                    <div class="mt-4 text-center text-gray-400">
                         <i class="fas fa-ellipsis-h"></i>
                     </div>
                 </div>
@@ -392,7 +425,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // 設置新的事件處理程序
             downloadReportBtn.onclick = function() {
-                // 獲取 Colab API 下載端點的基礎 URL
+                // 獲取 API 下載端點的基礎 URL
                 const apiBaseUrl = new URL(isParticleAnalysis ? particleAPIEndpoint : colabAPIEndpoint).origin;
                 // 構建完整的下載 URL
                 const downloadUrl = `${apiBaseUrl}/download/${data.reportPath}`;
@@ -421,10 +454,10 @@ document.addEventListener('DOMContentLoaded', function() {
         uploadedParticleDataFiles = [];
         uploadedParticleImageFiles = [];
         
-        updateDataFilesList();
-        updateImageFilesList();
-        updateParticleDataFilesList();
-        updateParticleImageFilesList();
+        updateFilesList(uploadedDataFiles, dataFilesPreview, dataFilesList);
+        updateImageList(uploadedImageFiles, imageFilesPreview, imageFilesList);
+        updateFilesList(uploadedParticleDataFiles, particleDataFilesPreview, particleDataFilesList);
+        updateImageList(uploadedParticleImageFiles, particleImageFilesPreview, particleImageFilesList);
         
         // 隱藏結果區塊
         resultSection.classList.add('hidden');
@@ -434,10 +467,10 @@ document.addEventListener('DOMContentLoaded', function() {
         downloadReportBtn.onclick = null;
         
         // 返回到對應的頁籤
-        if (mainSection.classList.contains('hidden')) {
-            particleTab.click();
+        if (!particleSection.classList.contains('hidden')) {
+            switchToParticleTab();
         } else {
-            mainTab.click();
+            switchToMainTab();
         }
     });
     
