@@ -4,13 +4,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CellPaintingProject - 細胞影像分析</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f5f7fa;
+        }
         .file-label {
             position: relative;
             overflow: hidden;
             display: inline-block;
+            transition: all 0.3s ease;
+        }
+        .file-label:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
         .file-label input[type=file] {
             position: absolute;
@@ -26,152 +38,1152 @@
             overflow-y: auto;
             border: 1px solid #e2e8f0;
             border-radius: 0.375rem;
+            background-color: #f8fafc;
+            transition: all 0.3s ease;
+        }
+        .nav-tab {
+            transition: all 0.3s ease;
+            border-bottom: 2px solid transparent;
+        }
+        .nav-tab.active {
+            border-bottom: 2px solid #2563eb;
+            font-weight: 500;
+        }
+        .card {
+            transition: all 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .btn {
+            transition: all 0.3s ease;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .btn:active {
+            transform: translateY(1px);
+        }
+        .gradient-bg {
+            background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+        }
+        .loading-spinner {
+            border-top-color: #3b82f6;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .modal-bg {
+            backdrop-filter: blur(5px);
+            background-color: rgba(0, 0, 0, 0.5);
+            transition: all 0.3s ease;
+        }
+        .modal-content {
+            transform: scale(0.95);
+            transition: all 0.3s ease;
+        }
+        .modal-visible .modal-content {
+            transform: scale(1);
+        }
+        .tool-card {
+            transition: all 0.3s ease;
+        }
+        .tool-card:hover {
+            transform: translateY(-5px);
+        }
+        .tool-card.active {
+            border-color: #3b82f6;
+        }
+        .tool-card:not(.active) {
+            opacity: 0.8;
+        }
+        .tool-card.active .bg-gray-100 {
+            background-color: #dbeafe;
+        }
+        .tool-card.active .text-gray-600 {
+            color: #2563eb;
         }
     </style>
 </head>
-<body class="bg-gray-50">
-    <nav class="bg-blue-600 text-white p-4 shadow-md">
-        <div class="container mx-auto flex justify-between items-center">
-            <h1 class="text-2xl font-bold">CellPaintingProject</h1>
-            <div>
-                <a href="#" class="text-white hover:text-blue-200 mr-4" id="about-link">關於專案</a>
-                <a href="#" class="text-white hover:text-blue-200" id="help-link">使用說明</a>
+<body>
+    <!-- 頂部導航欄 -->
+    <nav class="gradient-bg text-white shadow-lg">
+        <div class="container mx-auto">
+            <div class="flex justify-between items-center py-4 px-6">
+                <div class="flex items-center space-x-2">
+                    <i class="fas fa-microscope text-2xl"></i>
+                    <h1 class="text-2xl font-bold">CellPaintingProject</h1>
+                </div>
+                <div class="flex items-center space-x-6">
+                    <div class="hidden md:flex space-x-4">
+                        <a href="#" class="text-white hover:text-blue-200 flex items-center" id="about-link">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            <span>關於專案</span>
+                        </a>
+                        <a href="#" class="text-white hover:text-blue-200 flex items-center" id="help-link">
+                            <i class="fas fa-question-circle mr-1"></i>
+                            <span>使用說明</span>
+                        </a>
+                    </div>
+                    <button class="md:hidden text-white" id="mobile-menu-button">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                </div>
+            </div>
+            <!-- 行動裝置選單 -->
+            <div class="hidden px-6 pb-4" id="mobile-menu">
+                <div class="flex flex-col space-y-2">
+                    <a href="#" class="text-white hover:bg-blue-700 px-3 py-2 rounded-lg" id="mobile-about-link">關於專案</a>
+                    <a href="#" class="text-white hover:bg-blue-700 px-3 py-2 rounded-lg" id="mobile-help-link">使用說明</a>
+                </div>
             </div>
         </div>
     </nav>
 
     <main class="container mx-auto p-6">
-        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-            <h2 class="text-xl font-semibold mb-4">細胞影像分析與報告生成</h2>
-            <p class="mb-4">上傳您的實驗數據文件和圖片，我們將為您分析並生成專業的學術報告。</p>
+        <!-- 分析工具選擇卡片 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <!-- 一般分析卡片 -->
+            <div id="main-tab" class="card bg-white rounded-xl shadow-md p-5 cursor-pointer border-2 border-blue-500 tool-card active">
+                <div class="flex items-center">
+                    <div class="bg-blue-100 text-blue-600 rounded-full p-3 mr-4">
+                        <i class="fas fa-flask text-2xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-medium text-gray-800">一般分析</h3>
+                        <p class="text-gray-600 text-sm">進行全面的細胞影像分析與報告生成</p>
+                    </div>
+                </div>
+            </div>
             
-            <div class="mb-6">
-                <h3 class="text-lg font-medium mb-2">實驗參數設定</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-gray-700 mb-1">化合物名稱</label>
-                        <input type="text" id="compound-name" class="w-full px-3 py-2 border border-gray-300 rounded-md" value="Survanta">
+            <!-- 粒子分布分析卡片 -->
+            <div id="particle-tab" class="card bg-white rounded-xl shadow-md p-5 cursor-pointer border-2 border-transparent tool-card">
+                <div class="flex items-center">
+                    <div class="bg-gray-100 text-gray-600 rounded-full p-3 mr-4">
+                        <i class="fas fa-atom text-2xl"></i>
                     </div>
                     <div>
-                        <label class="block text-gray-700 mb-1">目標蛋白質</label>
-                        <input type="text" id="target-protein" class="w-full px-3 py-2 border border-gray-300 rounded-md" value="SP-B">
+                        <h3 class="text-lg font-medium text-gray-800">粒子分布分析</h3>
+                        <p class="text-gray-600 text-sm">專門評估流道內粒子分布的均勻性</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- 一般分析表單 -->
+        <div id="main-section" class="card bg-white rounded-xl shadow-md p-6 mb-6">
+            <div class="border-b border-gray-200 pb-4 mb-6">
+                <h2 class="text-2xl font-semibold text-gray-800">細胞影像分析與報告生成</h2>
+                <p class="text-gray-600 mt-2">上傳您的實驗數據文件和圖片，我們將為您分析並生成專業的學術報告。</p>
+            </div>
+            
+            <div class="mb-8">
+                <h3 class="text-lg font-medium text-gray-700 mb-3 flex items-center">
+                    <i class="fas fa-sliders-h text-blue-500 mr-2"></i>
+                    實驗參數設定
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-gray-700 mb-2 font-medium">化合物名稱</label>
+                        <input type="text" id="compound-name" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" value="Survanta">
                     </div>
                     <div>
-                        <label class="block text-gray-700 mb-1">細胞類型</label>
-                        <input type="text" id="cell-type" class="w-full px-3 py-2 border border-gray-300 rounded-md" value="A549">
+                        <label class="block text-gray-700 mb-2 font-medium">目標蛋白質</label>
+                        <input type="text" id="target-protein" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" value="SP-B">
                     </div>
                     <div>
-                        <label class="block text-gray-700 mb-1">處理時間</label>
-                        <input type="text" id="treatment-time" class="w-full px-3 py-2 border border-gray-300 rounded-md" value="6小時">
+                        <label class="block text-gray-700 mb-2 font-medium">細胞類型</label>
+                        <input type="text" id="cell-type" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" value="A549">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 mb-2 font-medium">處理時間</label>
+                        <input type="text" id="treatment-time" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" value="6小時">
                     </div>
                 </div>
             </div>
 
-            <div class="mb-6">
-                <h3 class="text-lg font-medium mb-2">上傳數據文件</h3>
-                <p class="text-sm text-gray-600 mb-2">請上傳所有相關的CSV或Excel檔案</p>
-                <label class="file-label bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md cursor-pointer">
+            <div class="mb-8">
+                <h3 class="text-lg font-medium text-gray-700 mb-3 flex items-center">
+                    <i class="fas fa-file-csv text-blue-500 mr-2"></i>
+                    上傳數據文件
+                </h3>
+                <p class="text-sm text-gray-600 mb-3">請上傳所有相關的CSV或Excel檔案</p>
+                <label class="file-label btn bg-blue-500 hover:bg-blue-600 text-white px-4 py-3 rounded-lg cursor-pointer flex items-center justify-center w-full md:w-auto">
                     <i class="fas fa-file-upload mr-2"></i>選擇數據文件
                     <input type="file" id="data-files" multiple accept=".csv,.xlsx,.xls">
                 </label>
-                <div id="data-files-preview" class="mt-2 file-preview p-2 hidden">
-                    <ul id="data-files-list" class="list-disc pl-4"></ul>
+                <div id="data-files-preview" class="mt-4 file-preview p-4 hidden rounded-lg">
+                    <h4 class="font-medium text-gray-700 mb-2">已選擇的檔案：</h4>
+                    <ul id="data-files-list" class="list-disc pl-6 text-gray-600"></ul>
                 </div>
             </div>
 
-            <div class="mb-6">
-                <h3 class="text-lg font-medium mb-2">上傳圖片文件</h3>
-                <p class="text-sm text-gray-600 mb-2">請上傳實驗相關的圖片文件</p>
-                <label class="file-label bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md cursor-pointer">
+            <div class="mb-8">
+                <h3 class="text-lg font-medium text-gray-700 mb-3 flex items-center">
+                    <i class="fas fa-images text-blue-500 mr-2"></i>
+                    上傳圖片文件
+                </h3>
+                <p class="text-sm text-gray-600 mb-3">請上傳實驗相關的圖片文件</p>
+                <label class="file-label btn bg-blue-500 hover:bg-blue-600 text-white px-4 py-3 rounded-lg cursor-pointer flex items-center justify-center w-full md:w-auto">
                     <i class="fas fa-images mr-2"></i>選擇圖片文件
                     <input type="file" id="image-files" multiple accept="image/*">
                 </label>
-                <div id="image-files-preview" class="mt-2 file-preview p-2 hidden">
-                    <div id="image-files-list" class="grid grid-cols-2 md:grid-cols-4 gap-2"></div>
+                <div id="image-files-preview" class="mt-4 file-preview p-4 hidden rounded-lg">
+                    <h4 class="font-medium text-gray-700 mb-2">已選擇的圖片：</h4>
+                    <div id="image-files-list" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
                 </div>
             </div>
 
-            <div class="mb-6">
-                <h3 class="text-lg font-medium mb-2">實驗描述</h3>
-                <textarea id="experiment-description" class="w-full px-3 py-2 border border-gray-300 rounded-md" rows="4" placeholder="請輸入您的實驗描述...">用霧化器將Survanta霧化加入培養了八天的A549器官晶片中,經過6小時的霧化治療後, 對SP-B進行免疫螢光染色, TestData - Sheet1.csv是我們在不同Survanta濃度下SP-B螢光分布面積的百分比和標準差, 0.68Hz_60ml.csv, 0.68Hz_500ml.csv,0.75Hz_60ml.csv,0.75Hz_500ml.csv是看霧化裝置是否能模擬臨床給藥的新生兒呼吸頻率, cv_results_60ml.csv和cv_results_500ml.csv是看此藥方是在器官晶片內，給藥是否均勻，我們用螢光粒子的均勻程度進行評估</textarea>
+            <div class="mb-8">
+                <h3 class="text-lg font-medium text-gray-700 mb-3 flex items-center">
+                    <i class="fas fa-clipboard-list text-blue-500 mr-2"></i>
+                    實驗描述
+                </h3>
+                <textarea id="experiment-description" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" rows="4" placeholder="請輸入您的實驗描述...">用霧化器將Survanta霧化加入培養了八天的A549器官晶片中,經過6小時的霧化治療後, 對SP-B進行免疫螢光染色, TestData - Sheet1.csv是我們在不同Survanta濃度下SP-B螢光分布面積的百分比和標準差, 0.68Hz_60ml.csv, 0.68Hz_500ml.csv,0.75Hz_60ml.csv,0.75Hz_500ml.csv是看霧化裝置是否能模擬臨床給藥的新生兒呼吸頻率, cv_results_60ml.csv和cv_results_500ml.csv是看此藥方是在器官晶片內，給藥是否均勻，我們用螢光粒子的均勻程度進行評估</textarea>
             </div>
 
             <div class="flex justify-center">
-                <button id="generate-report-btn" class="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-md font-medium">
+                <button id="generate-report-btn" class="btn bg-green-500 hover:bg-green-600 text-white px-8 py-3 rounded-lg font-medium flex items-center">
                     <i class="fas fa-file-contract mr-2"></i>生成分析報告
                 </button>
             </div>
         </div>
 
-        <div id="loading-section" class="bg-white rounded-lg shadow-md p-6 mb-6 text-center hidden">
-            <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-blue-500 border-solid mx-auto mb-4"></div>
-            <p class="text-lg" id="loading-message">正在處理您的數據，請稍候...</p>
-            <p class="text-sm text-gray-600 mt-2">這可能需要幾分鐘時間</p>
+        <!-- 粒子分析表單 -->
+        <div id="particle-section" class="card bg-white rounded-xl shadow-md p-6 mb-6 hidden">
+            <div class="border-b border-gray-200 pb-4 mb-6">
+                <h2 class="text-2xl font-semibold text-gray-800">粒子分布分析</h2>
+                <p class="text-gray-600 mt-2">上傳實驗圖片，我們將分析流道內粒子分布均勻性並生成報告。</p>
+            </div>
+            
+            <!-- <div class="mb-8">
+                <h3 class="text-lg font-medium text-gray-700 mb-3 flex items-center">
+                    <i class="fas fa-sliders-h text-blue-500 mr-2"></i>
+                    實驗參數設定
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-gray-700 mb-2 font-medium">化合物名稱</label>
+                        <input type="text" id="particle-compound-name" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" value="Survanta">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 mb-2 font-medium">目標蛋白質</label>
+                        <input type="text" id="particle-target-protein" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" value="SP-B">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 mb-2 font-medium">細胞類型</label>
+                        <input type="text" id="particle-cell-type" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" value="A549">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 mb-2 font-medium">處理時間</label>
+                        <input type="text" id="particle-treatment-time" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" value="6小時">
+                    </div>
+                </div>
+            </div> -->
+
+            <div class="mb-8">
+                <h3 class="text-lg font-medium text-gray-700 mb-3 flex items-center">
+                    <i class="fas fa-palette text-blue-500 mr-2"></i>
+                    圖像通道選擇
+                </h3>
+                <div class="mb-4">
+                    <label class="block text-gray-700 mb-2 font-medium">選擇分析通道</label>
+                    <select id="particle-channel" class="w-full md:w-1/2 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="red" selected>紅色通道 (Red)</option>
+                        <option value="green">綠色通道 (Green)</option>
+                        <option value="blue">藍色通道 (Blue)</option>
+                    </select>
+                    <p class="text-sm text-gray-600 mt-2">選擇含有粒子信息的合適通道，通常螢光粒子在紅色或綠色通道中可見。</p>
+                </div>
+            </div>
+
+            <div class="mb-8">
+                <h3 class="text-lg font-medium text-gray-700 mb-3 flex items-center">
+                    <i class="fas fa-file-csv text-blue-500 mr-2"></i>
+                    上傳數據文件
+                </h3>
+                <p class="text-sm text-gray-600 mb-3">可選：上傳相關的CSV或Excel檔案（如果有）</p>
+                <label class="file-label btn bg-blue-500 hover:bg-blue-600 text-white px-4 py-3 rounded-lg cursor-pointer flex items-center justify-center w-full md:w-auto">
+                    <i class="fas fa-file-upload mr-2"></i>選擇數據文件
+                    <input type="file" id="particle-data-files" multiple accept=".csv,.xlsx,.xls">
+                </label>
+                <div id="particle-data-files-preview" class="mt-4 file-preview p-4 hidden rounded-lg">
+                    <h4 class="font-medium text-gray-700 mb-2">已選擇的檔案：</h4>
+                    <ul id="particle-data-files-list" class="list-disc pl-6 text-gray-600"></ul>
+                </div>
+            </div>
+
+            <div class="mb-8">
+                <h3 class="text-lg font-medium text-gray-700 mb-3 flex items-center">
+                    <i class="fas fa-microscope text-blue-500 mr-2"></i>
+                    上傳粒子分布圖片
+                </h3>
+                <p class="text-sm text-gray-600 mb-3">請上傳流道內粒子分布的圖片文件（TIFF, PNG, JPEG等格式）</p>
+                <label class="file-label btn bg-blue-500 hover:bg-blue-600 text-white px-4 py-3 rounded-lg cursor-pointer flex items-center justify-center w-full md:w-auto">
+                    <i class="fas fa-images mr-2"></i>選擇圖片文件
+                    <input type="file" id="particle-image-files" multiple accept="image/*">
+                </label>
+                <div id="particle-image-files-preview" class="mt-4 file-preview p-4 hidden rounded-lg">
+                    <h4 class="font-medium text-gray-700 mb-2">已選擇的圖片：</h4>
+                    <div id="particle-image-files-list" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
+                </div>
+            </div>
+
+            <div class="mb-8">
+                <h3 class="text-lg font-medium text-gray-700 mb-3 flex items-center">
+                    <i class="fas fa-clipboard-list text-blue-500 mr-2"></i>
+                    實驗描述
+                </h3>
+                <textarea id="particle-experiment-description" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" rows="4" placeholder="請輸入您的實驗描述...">使用霧化器將螢光標記的粒子霧化加入器官晶片中，目的是評估霧化裝置是否能均勻分布粒子到流道各區域。</textarea>
+            </div>
+
+            <div class="flex justify-center">
+                <button id="analyze-particle-btn" class="btn bg-green-500 hover:bg-green-600 text-white px-8 py-3 rounded-lg font-medium flex items-center">
+                    <i class="fas fa-chart-bar mr-2"></i>分析粒子分布
+                </button>
+            </div>
         </div>
 
-        <div id="result-section" class="bg-white rounded-lg shadow-md p-6 hidden">
-            <h2 class="text-xl font-semibold mb-4">分析結果</h2>
-            <div id="result-content" class="mb-4"></div>
-            <div class="flex justify-center">
-                <button id="download-report-btn" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md mr-4">
-                    <i class="fas fa-download mr-2"></i>下載報告
+        <!-- 載入中顯示區域 -->
+        <div id="loading-section" class="card bg-white rounded-xl shadow-md p-8 mb-6 text-center hidden">
+            <div class="loading-spinner rounded-full h-16 w-16 border-4 border-gray-200 mx-auto mb-6"></div>
+            <p class="text-xl text-gray-700 font-medium" id="loading-message">正在處理您的數據，請稍候...</p>
+            <p class="text-gray-500 mt-3">根據分析類型與數據量，這可能需要幾分鐘時間</p>
+            <div class="w-full max-w-md mx-auto mt-6 bg-gray-200 rounded-full h-2 overflow-hidden">
+                <div class="loading-progress bg-blue-500 h-full" style="width: 0;"></div>
+            </div>
+        </div>
+
+        <!-- 結果顯示區域 -->
+        <div id="result-section" class="card bg-white rounded-xl shadow-md p-6 hidden">
+            <div class="border-b border-gray-200 pb-4 mb-6">
+                <h2 class="text-2xl font-semibold text-gray-800">分析結果</h2>
+                <p class="text-gray-600 mt-2">以下是您的實驗數據分析結果與可視化呈現</p>
+            </div>
+            
+            <div id="result-content" class="mb-8"></div>
+            
+            <div class="flex flex-col md:flex-row justify-center space-y-4 md:space-y-0 md:space-x-4">
+                <button id="download-report-btn" class="btn bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-medium flex items-center justify-center">
+                    <i class="fas fa-download mr-2"></i>下載完整報告
                 </button>
-                <button id="new-analysis-btn" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md">
-                    <i class="fas fa-redo mr-2"></i>新分析
+                <button id="new-analysis-btn" class="btn bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-medium flex items-center justify-center">
+                    <i class="fas fa-redo mr-2"></i>開始新分析
                 </button>
             </div>
         </div>
     </main>
 
     <!-- 關於專案對話框 -->
-    <div id="about-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-        <div class="bg-white rounded-lg shadow-lg p-6 max-w-md mx-4">
-            <h2 class="text-xl font-semibold mb-4">關於 CellPaintingProject</h2>
-            <p class="mb-4">
-                CellPaintingProject 是一個專門針對細胞影像分析的研究專案，主要目標是通過深度學習模型進行細胞影像的分類與特徵擷取。
-                本專案特別關注於呼吸道相關藥物的霧化效果分析，包括氣流率分析、顆粒分布均勻性分析以及濃度-響應分析。
-            </p>
-            <div class="text-right">
-                <button class="modal-close-btn bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md">關閉</button>
+    <div id="about-modal" class="modal-bg fixed inset-0 flex items-center justify-center z-50 hidden">
+        <div class="modal-content bg-white rounded-xl shadow-xl p-8 max-w-2xl mx-4 w-full">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-semibold text-gray-800">關於 CellPaintingProject</h2>
+                <button class="modal-close-btn text-gray-500 hover:text-gray-800 focus:outline-none">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="mb-6">
+                <p class="text-gray-600 mb-4 leading-relaxed">
+                    CellPaintingProject 是一個專門針對細胞影像分析的研究專案，主要目標是通過深度學習模型進行細胞影像的分類與特徵擷取。
+                </p>
+                <p class="text-gray-600 leading-relaxed">
+                    本專案特別關注於呼吸道相關藥物的霧化效果分析，包括氣流率分析、顆粒分布均勻性分析以及濃度-響應分析。我們的團隊致力於開發先進的影像處理演算法，以協助研究人員更有效地解析細胞反應和結構變化。
+                </p>
+            </div>
+            <div class="flex justify-between items-center">
+                <div class="text-gray-500 text-sm">
+                    <i class="fas fa-code-branch mr-1"></i> 版本 2.5.0
+                </div>
+                <button class="modal-close-btn btn bg-blue-500 hover:bg-blue-600 text-white px-5 py-2 rounded-lg">關閉</button>
             </div>
         </div>
     </div>
 
     <!-- 使用說明對話框 -->
-    <div id="help-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-        <div class="bg-white rounded-lg shadow-lg p-6 max-w-md mx-4 max-h-screen overflow-y-auto">
-            <h2 class="text-xl font-semibold mb-4">使用說明</h2>
-            <div class="mb-4">
-                <h3 class="text-lg font-medium mb-2">數據文件要求</h3>
-                <ul class="list-disc pl-6">
-                    <li>氣流數據文件: 0.68Hz_60ml.csv, 0.68Hz_500ml.csv, 0.75Hz_60ml.csv, 0.75Hz_500ml.csv</li>
-                    <li>CV 結果文件: cv_results_60ml.csv, cv_results_500ml.csv</li>
-                    <li>測試數據文件: TestData.csv 或 TestData.xlsx</li>
-                    <li>摘要統計文件: summary_stats.csv</li>
+    <div id="help-modal" class="modal-bg fixed inset-0 flex items-center justify-center z-50 hidden">
+        <div class="modal-content bg-white rounded-xl shadow-xl p-8 max-w-3xl mx-4 w-full max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-semibold text-gray-800">使用說明</h2>
+                <button class="modal-close-btn text-gray-500 hover:text-gray-800 focus:outline-none">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <!-- 使用說明標籤頁 -->
+            <div class="border-b border-gray-200 mb-6">
+                <ul class="flex flex-wrap -mb-px">
+                    <li class="mr-2">
+                        <a href="#" class="help-tab inline-block py-2 px-4 border-b-2 border-blue-500 text-blue-600 font-medium" data-target="general-help">一般分析</a>
+                    </li>
+                    <li class="mr-2">
+                        <a href="#" class="help-tab inline-block py-2 px-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700" data-target="particle-help">粒子分析</a>
+                    </li>
+                    <li class="mr-2">
+                        <a href="#" class="help-tab inline-block py-2 px-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700" data-target="faq-help">常見問題</a>
+                    </li>
                 </ul>
             </div>
-            <div class="mb-4">
-                <h3 class="text-lg font-medium mb-2">圖片文件要求</h3>
-                <p>請上傳相關的實驗圖片，如:</p>
-                <ul class="list-disc pl-6">
-                    <li>FL_particle.png - 螢光粒子分布圖</li>
-                    <li>BF_cell.png - 明場細胞圖像</li>
-                    <li>IF_cell_SP-B.png - 免疫螢光細胞 SP-B 標記圖像</li>
-                </ul>
+            
+            <!-- 一般分析說明內容 -->
+            <div id="general-help" class="help-content">
+                <div class="mb-6">
+                    <h3 class="text-lg font-medium text-gray-800 mb-3">數據文件要求</h3>
+                    <div class="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">
+                        <ul class="list-disc pl-6 space-y-2 text-gray-600">
+                            <li>氣流數據文件: 0.68Hz_60ml.csv, 0.68Hz_500ml.csv, 0.75Hz_60ml.csv, 0.75Hz_500ml.csv</li>
+                            <li>CV 結果文件: cv_results_60ml.csv, cv_results_500ml.csv</li>
+                            <li>測試數據文件: TestData.csv 或 TestData.xlsx</li>
+                            <li>摘要統計文件: summary_stats.csv</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="mb-6">
+                    <h3 class="text-lg font-medium text-gray-800 mb-3">圖片文件要求</h3>
+                    <div class="bg-green-50 p-4 rounded-lg border-l-4 border-green-500">
+                        <p class="mb-2 text-gray-700">請上傳相關的實驗圖片，如:</p>
+                        <ul class="list-disc pl-6 space-y-2 text-gray-600">
+                            <li>FL_particle.png - 螢光粒子分布圖</li>
+                            <li>BF_cell.png - 明場細胞圖像</li>
+                            <li>IF_cell_SP-B.png - 免疫螢光細胞 SP-B 標記圖像</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="mb-6">
+                    <h3 class="text-lg font-medium text-gray-800 mb-3">操作步驟</h3>
+                    <div class="bg-yellow-50 p-4 rounded-lg border-l-4 border-yellow-500">
+                        <ol class="list-decimal pl-6 space-y-2 text-gray-600">
+                            <li>完成實驗參數設定，確保所有欄位都已填寫</li>
+                            <li>上傳所需的數據文件，確保文件名稱符合要求</li>
+                            <li>上傳實驗相關圖片文件</li>
+                            <li>填寫實驗描述，提供詳盡的實驗背景與目的</li>
+                            <li>點擊「生成分析報告」按鈕，等待系統處理（可能需要幾分鐘）</li>
+                            <li>查看分析結果，必要時下載完整報告</li>
+                        </ol>
+                    </div>
+                </div>
             </div>
-            <div class="text-right">
-                <button class="modal-close-btn bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md">關閉</button>
+            
+            <!-- 粒子分析說明內容 -->
+            <div id="particle-help" class="help-content hidden">
+                <div class="mb-6">
+                    <h3 class="text-lg font-medium text-gray-800 mb-3">粒子分布分析說明</h3>
+                    <div class="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">
+                        <p class="mb-2 text-gray-700">粒子分布分析模組可評估霧化裝置在器官晶片中的霧化均勻性：</p>
+                        <ul class="list-disc pl-6 space-y-2 text-gray-600">
+                            <li>圖片文件要求：上傳流道內粒子分布的圖片(如 500ml_particle_RGB_TRITC.tif)</li>
+                            <li>支援的圖片格式：TIFF, PNG, JPEG 等大多數圖像格式</li>
+                            <li>通道選擇：請根據實驗選擇合適的顏色通道 (紅/綠/藍)</li>
+                            <li>分析指標：系統會計算粒子分布的變異係數(CV)，CV越低表示分布越均勻</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="mb-6">
+                    <h3 class="text-lg font-medium text-gray-800 mb-3">分析結果解讀</h3>
+                    <div class="bg-green-50 p-4 rounded-lg border-l-4 border-green-500">
+                        <ul class="list-disc pl-6 space-y-2 text-gray-600">
+                            <li><strong>變異係數(CV) &lt; 0.1</strong>：表示粒子分布非常均勻</li>
+                            <li><strong>變異係數(CV) 0.1-0.2</strong>：表示粒子分布均勻</li>
+                            <li><strong>變異係數(CV) &gt; 0.2</strong>：表示粒子分布不均勻，建議調整霧化參數</li>
+                            <li>系統會生成粒子分布沿流道的可視化圖表，便於直觀判斷分布情況</li>
+                            <li>ROI 擷取視覺化可協助驗證系統選取的分析區域是否正確</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="mb-6">
+                    <h3 class="text-lg font-medium text-gray-800 mb-3">操作步驟</h3>
+                    <div class="bg-yellow-50 p-4 rounded-lg border-l-4 border-yellow-500">
+                        <ol class="list-decimal pl-6 space-y-2 text-gray-600">
+                            <li>完成實驗參數設定，確保所有欄位都已填寫</li>
+                            <li>選擇適合的圖像通道（通常螢光粒子在紅色或綠色通道中較為明顯）</li>
+                            <li>上傳粒子分布圖片（建議一次處理類似條件下的圖片）</li>
+                            <li>填寫實驗描述，說明霧化條件與實驗目的</li>
+                            <li>點擊「分析粒子分布」按鈕，等待系統處理</li>
+                            <li>查看分析結果，特別留意 CV 值與分布圖</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 常見問題說明內容 -->
+            <div id="faq-help" class="help-content hidden">
+                <div class="mb-6">
+                    <h3 class="text-lg font-medium text-gray-800 mb-3">常見問題</h3>
+                    <div class="space-y-4">
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <h4 class="font-medium text-gray-800 mb-1">Q: 處理需要多長時間？</h4>
+                            <p class="text-gray-600">A: 根據數據量的不同，處理時間通常在 30 秒至 5 分鐘之間。粒子分布分析通常較快，大型複雜報告可能需要更長時間。</p>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <h4 class="font-medium text-gray-800 mb-1">Q: 系統支援哪些圖像格式？</h4>
+                            <p class="text-gray-600">A: 系統支援常見的圖像格式，包括 TIFF、PNG、JPEG、BMP 等。對於特殊格式，建議先轉換為 TIFF 或 PNG 格式。</p>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <h4 class="font-medium text-gray-800 mb-1">Q: 如果自動 ROI 擷取失敗怎麼辦？</h4>
+                            <p class="text-gray-600">A: 自動 ROI 擷取可能在圖像對比度低或雜訊多時失敗。此時系統會自動採用預設的 ROI（圖像中心 80% 區域）。如果持續失敗，建議提高圖像對比度後重試。</p>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <h4 class="font-medium text-gray-800 mb-1">Q: 如何選擇正確的通道？</h4>
+                            <p class="text-gray-600">A: 應選擇包含目標信號的通道。對於紅色螢光標記（如 TRITC, Cy3, RFP），選擇紅色通道；對於綠色螢光標記（如 FITC, GFP），選擇綠色通道；對於藍色螢光標記（如 DAPI, CFP），選擇藍色通道。</p>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <h4 class="font-medium text-gray-800 mb-1">Q: 是否可以重新分析歷史數據？</h4>
+                            <p class="text-gray-600">A: 目前系統不保存歷史數據，每次分析都需要重新上傳文件。建議將生成的報告和 CSV 數據下載保存，以便日後參考。</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-6">
+                    <h3 class="text-lg font-medium text-gray-800 mb-3">技術支援</h3>
+                    <div class="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">
+                        <p class="text-gray-700 mb-2">如果您遇到任何技術問題或有功能建議，請聯絡我們的技術支援團隊：</p>
+                        <ul class="list-disc pl-6 space-y-1 text-gray-600">
+                            <li>電子郵件: <a href="mailto:support@cellpaintingproject.org" class="text-blue-600 hover:underline">support@cellpaintingproject.org</a></li>
+                            <li>工作時間: 週一至週五 9:00-18:00</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="text-right mt-6">
+                <button class="modal-close-btn btn bg-blue-500 hover:bg-blue-600 text-white px-5 py-2 rounded-lg">關閉</button>
             </div>
         </div>
     </div>
 
-    <footer class="bg-gray-800 text-white p-4 mt-6">
-        <div class="container mx-auto text-center">
-            <p>© 2025 CellPaintingProject - 細胞影像分析</p>
-            <p class="text-sm text-gray-400 mt-1">本系統由先進AI技術支持</p>
+    <footer class="bg-gray-800 text-white py-8 mt-12">
+        <div class="container mx-auto px-6">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="mb-6 md:mb-0">
+                    <div class="flex items-center">
+                        <i class="fas fa-microscope text-2xl mr-2"></i>
+                        <h2 class="text-xl font-bold">CellPaintingProject</h2>
+                    </div>
+                    <p class="text-gray-400 mt-2">細胞影像分析平台</p>
+                </div>
+                <div class="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-12">
+                    <div>
+                        <h3 class="text-lg font-medium mb-2">資源</h3>
+                        <ul class="space-y-2">
+                            <li><a href="#" class="text-gray-400 hover:text-blue-300">技術文件</a></li>
+                            <li><a href="#" class="text-gray-400 hover:text-blue-300">API 文件</a></li>
+                            <li><a href="#" class="text-gray-400 hover:text-blue-300">使用指南</a></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-medium mb-2">聯絡我們</h3>
+                        <ul class="space-y-2">
+                            <li class="flex items-center text-gray-400">
+                                <i class="fas fa-envelope mr-2"></i>
+                                <a href="mailto:info@cellpaintingproject.org" class="hover:text-blue-300">info@cellpaintingproject.org</a>
+                            </li>
+                            <li class="flex items-center text-gray-400">
+                                <i class="fas fa-globe mr-2"></i>
+                                <a href="https://cellpaintingproject.org" class="hover:text-blue-300">cellpaintingproject.org</a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="border-t border-gray-700 mt-8 pt-6 text-center text-gray-400">
+                <p>© 2025 CellPaintingProject. 版權所有。</p>
+                <p class="mt-1 text-sm">本系統由先進 AI 技術支持</p>
+            </div>
         </div>
     </footer>
 
-    <script src="app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 頁籤切換功能
+            const mainTab = document.getElementById('main-tab');
+            const particleTab = document.getElementById('particle-tab');
+            const mainSection = document.getElementById('main-section');
+            const particleSection = document.getElementById('particle-section');
+            
+            // 行動裝置選單
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            const mobileMainTab = document.getElementById('mobile-main-tab');
+            const mobileParticleTab = document.getElementById('mobile-particle-tab');
+            
+            // 使用說明標籤頁
+            const helpTabs = document.querySelectorAll('.help-tab');
+            const helpContents = document.querySelectorAll('.help-content');
+            
+            // 模態框元素
+            const aboutLink = document.getElementById('about-link');
+            const helpLink = document.getElementById('help-link');
+            const mobileAboutLink = document.getElementById('mobile-about-link');
+            const mobileHelpLink = document.getElementById('mobile-help-link');
+            const aboutModal = document.getElementById('about-modal');
+            const helpModal = document.getElementById('help-modal');
+            const closeButtons = document.querySelectorAll('.modal-close-btn');
+            
+            // 文件上傳預覽相關元素
+            const dataFilesInput = document.getElementById('data-files');
+            const dataFilesPreview = document.getElementById('data-files-preview');
+            const dataFilesList = document.getElementById('data-files-list');
+            const imageFilesInput = document.getElementById('image-files');
+            const imageFilesPreview = document.getElementById('image-files-preview');
+            const imageFilesList = document.getElementById('image-files-list');
+            
+            // 粒子分析相關元素
+            const particleDataFilesInput = document.getElementById('particle-data-files');
+            const particleDataFilesPreview = document.getElementById('particle-data-files-preview');
+            const particleDataFilesList = document.getElementById('particle-data-files-list');
+            const particleImageFilesInput = document.getElementById('particle-image-files');
+            const particleImageFilesPreview = document.getElementById('particle-image-files-preview');
+            const particleImageFilesList = document.getElementById('particle-image-files-list');
+            
+            // 按鈕元素
+            const generateReportBtn = document.getElementById('generate-report-btn');
+            const analyzeParticleBtn = document.getElementById('analyze-particle-btn');
+            const downloadReportBtn = document.getElementById('download-report-btn');
+            const newAnalysisBtn = document.getElementById('new-analysis-btn');
+            
+            // 頁面區塊
+            const loadingSection = document.getElementById('loading-section');
+            const resultSection = document.getElementById('result-section');
+            const resultContent = document.getElementById('result-content');
+            
+            // 存儲上傳的文件
+            let uploadedDataFiles = [];
+            let uploadedImageFiles = [];
+            let uploadedParticleDataFiles = [];
+            let uploadedParticleImageFiles = [];
+            
+            // API 端點
+            let colabAPIEndpoint = 'https://cellpainting-api.james-chang-04c.workers.dev/analyze';
+            let particleAPIEndpoint = 'https://cellpainting-api.james-chang-04c.workers.dev/analyze-particle';
+            
+            // 處理行動裝置選單顯示/隱藏
+            mobileMenuButton.addEventListener('click', function() {
+                mobileMenu.classList.toggle('hidden');
+            });
+            
+            // 頁籤切換功能
+            function switchToMainTab() {
+                // 更新卡片樣式
+                const mainTab = document.getElementById('main-tab');
+                const particleTab = document.getElementById('particle-tab');
+                
+                mainTab.classList.add('active');
+                mainTab.classList.add('border-blue-500');
+                mainTab.classList.remove('border-transparent');
+                
+                // 確保主頁籤圖標使用正確顏色
+                const mainIcon = mainTab.querySelector('div:first-child');
+                mainIcon.classList.remove('bg-gray-100', 'text-gray-600');
+                mainIcon.classList.add('bg-blue-100', 'text-blue-600');
+                
+                // 更新另一個卡片
+                particleTab.classList.remove('active');
+                particleTab.classList.remove('border-blue-500');
+                particleTab.classList.add('border-transparent');
+                
+                // 確保另一個頁籤圖標使用灰色
+                const particleIcon = particleTab.querySelector('div:first-child');
+                particleIcon.classList.remove('bg-blue-100', 'text-blue-600');
+                particleIcon.classList.add('bg-gray-100', 'text-gray-600');
+                
+                // 顯示對應區塊
+                document.getElementById('main-section').classList.remove('hidden');
+                document.getElementById('particle-section').classList.add('hidden');
+                
+                // 行動裝置選單
+                document.getElementById('mobile-menu').classList.add('hidden');
+            }
+            
+            function switchToParticleTab() {
+                // 更新卡片樣式
+                const mainTab = document.getElementById('main-tab');
+                const particleTab = document.getElementById('particle-tab');
+                
+                particleTab.classList.add('active');
+                particleTab.classList.add('border-blue-500');
+                particleTab.classList.remove('border-transparent');
+                
+                // 確保粒子頁籤圖標使用正確顏色
+                const particleIcon = particleTab.querySelector('div:first-child');
+                particleIcon.classList.remove('bg-gray-100', 'text-gray-600');
+                particleIcon.classList.add('bg-blue-100', 'text-blue-600');
+                
+                // 更新另一個卡片
+                mainTab.classList.remove('active');
+                mainTab.classList.remove('border-blue-500');
+                mainTab.classList.add('border-transparent');
+                
+                // 確保另一個頁籤圖標使用灰色
+                const mainIcon = mainTab.querySelector('div:first-child');
+                mainIcon.classList.remove('bg-blue-100', 'text-blue-600');
+                mainIcon.classList.add('bg-gray-100', 'text-gray-600');
+                
+                // 顯示對應區塊
+                document.getElementById('particle-section').classList.remove('hidden');
+                document.getElementById('main-section').classList.add('hidden');
+                
+                // 行動裝置選單
+                document.getElementById('mobile-menu').classList.add('hidden');
+            }
+            
+            mainTab.addEventListener('click', function(e) {
+                e.preventDefault();
+                switchToMainTab();
+            });
+            
+            particleTab.addEventListener('click', function(e) {
+                e.preventDefault();
+                switchToParticleTab();
+            });
+            
+            mobileMainTab.addEventListener('click', function(e) {
+                e.preventDefault();
+                switchToMainTab();
+            });
+            
+            mobileParticleTab.addEventListener('click', function(e) {
+                e.preventDefault();
+                switchToParticleTab();
+            });
+            
+            // 幫助標籤頁切換
+            helpTabs.forEach(tab => {
+                tab.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    
+                    // 移除所有標籤的活動狀態
+                    helpTabs.forEach(t => {
+                        t.classList.remove('border-blue-500', 'text-blue-600');
+                        t.classList.add('border-transparent', 'text-gray-500');
+                    });
+                    
+                    // 為當前標籤添加活動狀態
+                    this.classList.remove('border-transparent', 'text-gray-500');
+                    this.classList.add('border-blue-500', 'text-blue-600');
+                    
+                    // 隱藏所有內容
+                    helpContents.forEach(content => {
+                        content.classList.add('hidden');
+                    });
+                    
+                    // 顯示對應內容
+                    const targetContent = document.getElementById(this.getAttribute('data-target'));
+                    targetContent.classList.remove('hidden');
+                });
+            });
+            
+            // 處理模態對話框的顯示和隱藏
+            function showModal(modal) {
+                modal.classList.remove('hidden');
+                modal.classList.add('modal-visible');
+                document.body.style.overflow = 'hidden'; // 防止背景滾動
+            }
+            
+            function hideModals() {
+                aboutModal.classList.add('hidden');
+                helpModal.classList.add('hidden');
+                aboutModal.classList.remove('modal-visible');
+                helpModal.classList.remove('modal-visible');
+                document.body.style.overflow = ''; // 恢復背景滾動
+            }
+            
+            aboutLink.addEventListener('click', function(e) {
+                e.preventDefault();
+                showModal(aboutModal);
+            });
+            
+            helpLink.addEventListener('click', function(e) {
+                e.preventDefault();
+                showModal(helpModal);
+            });
+            
+            mobileAboutLink.addEventListener('click', function(e) {
+                e.preventDefault();
+                showModal(aboutModal);
+                mobileMenu.classList.add('hidden');
+            });
+            
+            mobileHelpLink.addEventListener('click', function(e) {
+                e.preventDefault();
+                showModal(helpModal);
+                mobileMenu.classList.add('hidden');
+            });
+            
+            closeButtons.forEach(button => {
+                button.addEventListener('click', hideModals);
+            });
+            
+            // 點擊模態對話框外部時關閉
+            window.addEventListener('click', function(e) {
+                if (e.target === aboutModal || e.target === helpModal) {
+                    hideModals();
+                }
+            });
+            
+            // 處理文件上傳預覽
+            dataFilesInput.addEventListener('change', function() {
+                uploadedDataFiles = Array.from(this.files);
+                updateFilesList(uploadedDataFiles, dataFilesPreview, dataFilesList);
+            });
+            
+            imageFilesInput.addEventListener('change', function() {
+                uploadedImageFiles = Array.from(this.files);
+                updateImageList(uploadedImageFiles, imageFilesPreview, imageFilesList);
+            });
+            
+            particleDataFilesInput.addEventListener('change', function() {
+                uploadedParticleDataFiles = Array.from(this.files);
+                updateFilesList(uploadedParticleDataFiles, particleDataFilesPreview, particleDataFilesList);
+            });
+            
+            particleImageFilesInput.addEventListener('change', function() {
+                uploadedParticleImageFiles = Array.from(this.files);
+                updateImageList(uploadedParticleImageFiles, particleImageFilesPreview, particleImageFilesList);
+            });
+            
+            // 更新文件列表顯示
+            function updateFilesList(files, previewElement, listElement) {
+                if (files.length > 0) {
+                    previewElement.classList.remove('hidden');
+                    listElement.innerHTML = '';
+                    files.forEach(file => {
+                        const li = document.createElement('li');
+                        li.textContent = file.name;
+                        listElement.appendChild(li);
+                    });
+                } else {
+                    previewElement.classList.add('hidden');
+                }
+            }
+            
+            // 更新圖片列表顯示
+            function updateImageList(files, previewElement, listElement) {
+                if (files.length > 0) {
+                    previewElement.classList.remove('hidden');
+                    listElement.innerHTML = '';
+                    files.forEach(file => {
+                        const div = document.createElement('div');
+                        div.className = 'relative';
+                        
+                        const img = document.createElement('img');
+                        img.src = URL.createObjectURL(file);
+                        img.className = 'w-full h-24 object-cover rounded border border-gray-300';
+                        img.alt = file.name;
+                        
+                        const span = document.createElement('span');
+                        span.className = 'block text-xs text-center mt-1 truncate';
+                        span.textContent = file.name;
+                        
+                        div.appendChild(img);
+                        div.appendChild(span);
+                        listElement.appendChild(div);
+                    });
+                } else {
+                    previewElement.classList.add('hidden');
+                }
+            }
+            
+            // 處理生成報告按鈕點擊
+            generateReportBtn.addEventListener('click', function() {
+                if (uploadedDataFiles.length === 0) {
+                    alert('請上傳至少一個數據文件');
+                    return;
+                }
+                
+                // 顯示載入區塊
+                loadingSection.classList.remove('hidden');
+                document.querySelector('.loading-progress').style.width = '5%';
+                
+                // 收集表單數據
+                const experimentData = {
+                    compoundName: document.getElementById('compound-name').value,
+                    targetProtein: document.getElementById('target-protein').value,
+                    cellType: document.getElementById('cell-type').value,
+                    treatmentTime: document.getElementById('treatment-time').value,
+                    experimentDescription: document.getElementById('experiment-description').value
+                };
+                
+                // 準備表單數據
+                const formData = new FormData();
+                formData.append('experimentData', JSON.stringify(experimentData));
+                
+                // 添加所有數據文件
+                uploadedDataFiles.forEach(file => {
+                    formData.append('dataFiles', file);
+                });
+                
+                // 添加所有圖片文件
+                uploadedImageFiles.forEach(file => {
+                    formData.append('imageFiles', file);
+                });
+                
+                // 模擬載入進度
+                simulateProgress();
+                
+                // 發送到 API
+                connectToAPI(formData, colabAPIEndpoint);
+            });
+            
+            // 處理粒子分析按鈕點擊
+            analyzeParticleBtn.addEventListener('click', function() {
+                if (uploadedParticleImageFiles.length === 0) {
+                    alert('請上傳至少一個粒子分布圖片');
+                    return;
+                }
+                
+                // 顯示載入區塊
+                loadingSection.classList.remove('hidden');
+                document.querySelector('.loading-progress').style.width = '5%';
+                
+                // 收集表單數據
+                const experimentData = {
+                    compoundName: document.getElementById('particle-compound-name').value,
+                    targetProtein: document.getElementById('particle-target-protein').value,
+                    cellType: document.getElementById('particle-cell-type').value,
+                    treatmentTime: document.getElementById('particle-treatment-time').value,
+                    experimentDescription: document.getElementById('particle-experiment-description').value
+                };
+                
+                // 準備表單數據
+                const formData = new FormData();
+                formData.append('experimentData', JSON.stringify(experimentData));
+                formData.append('channel', document.getElementById('particle-channel').value);
+                
+                // 添加所有數據文件
+                uploadedParticleDataFiles.forEach(file => {
+                    formData.append('dataFiles', file);
+                });
+                
+                // 添加所有圖片文件
+                uploadedParticleImageFiles.forEach(file => {
+                    formData.append('imageFiles', file);
+                });
+                
+                // 模擬載入進度
+                simulateProgress();
+                
+                // 發送到 API
+                connectToAPI(formData, particleAPIEndpoint);
+            });
+            
+            // 模擬載入進度
+            function simulateProgress() {
+                const progressBar = document.querySelector('.loading-progress');
+                let width = 5;
+                const interval = setInterval(() => {
+                    if (width >= 90) {
+                        clearInterval(interval);
+                    } else {
+                        width += Math.random() * 10;
+                        progressBar.style.width = width + '%';
+                    }
+                }, 700);
+            }
+            
+            // 連接到 API
+            function connectToAPI(formData, endpoint) {
+                // 更新載入訊息
+                const loadingMessage = document.getElementById('loading-message');
+                loadingMessage.textContent = '連接到分析伺服器中...';
+                
+                // 使用實際 API 調用
+                fetch(endpoint, {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('伺服器回應錯誤: ' + response.status);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // 更新載入訊息
+                    loadingMessage.textContent = '處理完成';
+                    document.querySelector('.loading-progress').style.width = '100%';
+                    
+                    // 延遲隱藏載入區塊，顯示結果區塊
+                    setTimeout(() => {
+                        loadingSection.classList.add('hidden');
+                        resultSection.classList.remove('hidden');
+                        
+                        // 處理並顯示結果
+                        displayResults(data);
+                    }, 500);
+                })
+                .catch(error => {
+                    console.error('錯誤:', error);
+                    loadingSection.classList.add('hidden');
+                    alert('分析過程中發生錯誤: ' + error.message);
+                });
+            }
+            
+            // 顯示 API 返回的結果
+            function displayResults(data) {
+                // 識別當前的分析類型
+                const isParticleAnalysis = !particleSection.classList.contains('hidden');
+                
+                // 依據分析類型獲取相應的數據
+                let compoundName, targetProtein;
+                
+                if (isParticleAnalysis) {
+                    compoundName = document.getElementById('particle-compound-name').value;
+                    targetProtein = document.getElementById('particle-target-protein').value;
+                } else {
+                    compoundName = document.getElementById('compound-name').value;
+                    targetProtein = document.getElementById('target-protein').value;
+                }
+                
+                // 構建 HTML 內容
+                let resultsHTML = `
+                    <div class="mb-6 p-4 bg-green-100 border-l-4 border-green-500 rounded">
+                        <p class="text-lg flex items-center">
+                            <i class="fas fa-check-circle text-green-600 mr-2"></i>
+                            ${data.message || '報告已成功生成!'}
+                        </p>
+                    </div>
+                    <div class="mb-6">
+                        <h3 class="text-xl font-medium text-gray-800 mb-3">報告摘要</h3>`;
+                
+                if (isParticleAnalysis) {
+                    resultsHTML += `<p class="text-gray-600">我們完成了對 ${compoundName} 在流道中的粒子分布均勻性分析。報告包含各樣本的變異係數(CV)分析，可用於評估霧化均勻性。</p>`;
+                } else {
+                    resultsHTML += `<p class="text-gray-600">我們完成了對 ${compoundName} 在 ${targetProtein} 表達上的影響分析。報告包含三個主要部分：氣流率分析、顆粒分布均勻性分析以及濃度-響應分析。</p>`;
+                }
+                
+                resultsHTML += `</div>`;
+                
+                // 添加圖表預覽（如果有）
+                if (data.chartPreviews && data.chartPreviews.length > 0) {
+                    resultsHTML += `
+                    <div class="mb-6">
+                        <h3 class="text-xl font-medium text-gray-800 mb-3">分析圖表</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">`;
+                    
+                    data.chartPreviews.forEach(chart => {
+                        resultsHTML += `
+                            <div class="border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300">
+                                <img src="${chart.image}" alt="${chart.caption}" class="w-full h-auto">
+                                <p class="text-sm text-center p-3 text-gray-600">${chart.caption}</p>
+                            </div>`;
+                    });
+                    
+                    resultsHTML += `
+                        </div>
+                    </div>`;
+                }
+                
+                // 添加報告預覽
+                if (data.reportPreview) {
+                    resultsHTML += `
+                    <div class="mb-6">
+                        <h3 class="text-xl font-medium text-gray-800 mb-3">報告預覽</h3>
+                        <div class="border border-gray-300 rounded-lg p-6 bg-gray-50 whitespace-pre-line text-gray-700">
+                            ${data.reportPreview}
+                            <div class="mt-4 text-center text-gray-400">
+                                <i class="fas fa-ellipsis-h"></i>
+                            </div>
+                        </div>
+                    </div>`;
+                }
+                
+                // 更新 DOM
+                resultContent.innerHTML = resultsHTML;
+                
+                // 設置下載按鈕的事件處理程序
+                if (data.reportPath) {
+                    // 清除之前的事件處理程序
+                    downloadReportBtn.onclick = null;
+                    
+                    // 設置新的事件處理程序
+                    downloadReportBtn.onclick = function() {
+                        // 獲取 API 下載端點的基礎 URL
+                        const apiBaseUrl = new URL(isParticleAnalysis ? particleAPIEndpoint : colabAPIEndpoint).origin;
+                        // 構建完整的下載 URL
+                        const downloadUrl = `${apiBaseUrl}/download/${data.reportPath}`;
+                        // 打開下載鏈接
+                        window.open(downloadUrl, '_blank');
+                    };
+                    
+                    // 啟用下載按鈕
+                    downloadReportBtn.disabled = false;
+                } else {
+                    // 禁用下載按鈕
+                    downloadReportBtn.disabled = true;
+                }
+            }
+            
+            // 開始新分析按鈕事件處理
+            newAnalysisBtn.addEventListener('click', function() {
+                // 重置文件上傳
+                dataFilesInput.value = '';
+                imageFilesInput.value = '';
+                particleDataFilesInput.value = '';
+                particleImageFilesInput.value = '';
+                
+                uploadedDataFiles = [];
+                uploadedImageFiles = [];
+                uploadedParticleDataFiles = [];
+                uploadedParticleImageFiles = [];
+                
+                updateFilesList(uploadedDataFiles, dataFilesPreview, dataFilesList);
+                updateImageList(uploadedImageFiles, imageFilesPreview, imageFilesList);
+                updateFilesList(uploadedParticleDataFiles, particleDataFilesPreview, particleDataFilesList);
+                updateImageList(uploadedParticleImageFiles, particleImageFilesPreview, particleImageFilesList);
+                
+                // 隱藏結果區塊
+                resultSection.classList.add('hidden');
+                
+                // 禁用下載按鈕
+                downloadReportBtn.disabled = true;
+                downloadReportBtn.onclick = null;
+                
+                // 返回到對應的頁籤
+                if (!particleSection.classList.contains('hidden')) {
+                    switchToParticleTab();
+                } else {
+                    switchToMainTab();
+                }
+            });
+            
+            // 初始化頁面
+            function initializePage() {
+                // 檢查 URL 參數是否有指定的 API 端點
+                const urlParams = new URLSearchParams(window.location.search);
+                const apiEndpoint = urlParams.get('api');
+                const particleApi = urlParams.get('particleApi');
+                
+                if (apiEndpoint) {
+                    // 如果在 URL 中找到 API 端點，就更新 colabAPIEndpoint 變數
+                    colabAPIEndpoint = decodeURIComponent(apiEndpoint);
+                    console.log('使用 URL 參數中的 API 端點:', colabAPIEndpoint);
+                }
+                
+                if (particleApi) {
+                    // 如果在 URL 中找到粒子分析 API 端點，就更新 particleAPIEndpoint 變數
+                    particleAPIEndpoint = decodeURIComponent(particleApi);
+                    console.log('使用 URL 參數中的粒子分析 API 端點:', particleAPIEndpoint);
+                }
+                
+                // 可選：顯示連接狀態
+                if (apiEndpoint || particleApi) {
+                    const statusElement = document.createElement('div');
+                    statusElement.className = 'mt-4 p-2 bg-blue-100 text-blue-700 rounded';
+                    statusElement.innerHTML = `<i class="fas fa-info-circle mr-2"></i>已連接到自定義 API 端點`;
+                    document.querySelector('main .container').prepend(statusElement);
+                }
+            }
+            
+            // 頁面載入後執行初始化
+            initializePage();
+        });
+    </script>
 </body>
 </html>
