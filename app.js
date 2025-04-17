@@ -45,9 +45,9 @@ document.addEventListener('DOMContentLoaded', function() {
     let uploadedParticleDataFiles = [];
     let uploadedParticleImageFiles = [];
     
-    // API 端點
-    let colabAPIEndpoint = 'https://cellpainting-api.james-chang-04c.workers.dev/analyze';
-    let particleAPIEndpoint = 'https://cellpainting-api.james-chang-04c.workers.dev/analyze-particle';
+    // API 端點 - 修改為 Render 部署的 API 地址
+    let reportGeneratorAPIEndpoint = 'https://report-generator-api-mnft.onrender.com';
+    let particleDistributionAPIEndpoint = 'https://particle-distribution-api.onrender.com';
     
     // 初始化下載按鈕 - 開始時禁用
     downloadReportBtn.disabled = true;
@@ -253,7 +253,7 @@ document.addEventListener('DOMContentLoaded', function() {
         simulateProgress();
         
         // 發送到 API
-        connectToAPI(formData, colabAPIEndpoint);
+        connectToAPI(formData, reportGeneratorAPIEndpoint);
     });
     
     // 處理粒子分析按鈕點擊
@@ -291,7 +291,7 @@ document.addEventListener('DOMContentLoaded', function() {
         simulateProgress();
         
         // 發送到 API
-        connectToAPI(formData, particleAPIEndpoint);
+        connectToAPI(formData, particleDistributionAPIEndpoint);
     });
     
     // 模擬載入進度
@@ -314,10 +314,17 @@ document.addEventListener('DOMContentLoaded', function() {
         const loadingMessage = document.getElementById('loading-message');
         loadingMessage.textContent = '連接到分析伺服器中...';
         
+        // 添加粒子分析 ID，用於跨服務參照
+        if (endpoint === reportGeneratorAPIEndpoint && window.lastParticleAnalysisId) {
+            formData.append('particleAnalysisId', window.lastParticleAnalysisId);
+        }
+        
         // 使用實際 API 調用
         fetch(endpoint, {
             method: 'POST',
-            body: formData
+            body: formData,
+            // 增加 timeout 設定，因為 Render 免費版可能較慢
+            // 注意: 此功能需要通過 AbortController 實現，這裡只是註解
         })
         .then(response => {
             if (!response.ok) {
@@ -330,13 +337,18 @@ document.addEventListener('DOMContentLoaded', function() {
             loadingMessage.textContent = '處理完成';
             document.querySelector('.loading-progress').style.width = '100%';
             
+            // 如果是粒子分析結果，保存分析ID以便在報告生成時使用
+            if (endpoint === particleDistributionAPIEndpoint && data.analysisId) {
+                window.lastParticleAnalysisId = data.analysisId;
+            }
+            
             // 延遲隱藏載入區塊，顯示結果區塊
             setTimeout(() => {
                 loadingSection.classList.add('hidden');
                 resultSection.classList.remove('hidden');
                 
                 // 處理並顯示結果
-                displayResults(data);
+                displayResults(data, endpoint);
             }, 500);
         })
         .catch(error => {
@@ -347,9 +359,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // 顯示 API 返回的結果
-    function displayResults(data) {
+    function displayResults(data, endpoint) {
         // 識別當前的分析類型
-        const isParticleAnalysis = !mainSection.classList.contains('hidden');
+        const isParticleAnalysis = endpoint === particleDistributionAPIEndpoint;
         
         // 依據分析類型獲取相應的數據
         let compoundName, targetProtein;
@@ -415,6 +427,17 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>`;
         }
         
+        // 如果是粒子分析，添加分析ID資訊
+        if (isParticleAnalysis && data.analysisId) {
+            resultsHTML += `
+            <div class="mb-6 p-4 bg-blue-50 border-l-4 border-blue-500 rounded">
+                <p class="text-gray-700 flex items-center">
+                    <i class="fas fa-info-circle text-blue-600 mr-2"></i>
+                    若要在報告生成中使用此粒子分析結果，請點擊「開始新分析」後選擇一般分析頁籤。系統將自動加入此分析結果。
+                </p>
+            </div>`;
+        }
+        
         // 更新 DOM
         resultContent.innerHTML = resultsHTML;
         
@@ -425,8 +448,8 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // 設置新的事件處理程序
             downloadReportBtn.onclick = function() {
-                // 獲取 API 下載端點的基礎 URL
-                const apiBaseUrl = new URL(isParticleAnalysis ? particleAPIEndpoint : colabAPIEndpoint).origin;
+                // 獲取相應 API 端點的基礎 URL
+                const apiBaseUrl = new URL(endpoint).origin;
                 // 構建完整的下載 URL
                 const downloadUrl = `${apiBaseUrl}/download/${data.reportPath}`;
                 // 打開下載鏈接
@@ -478,28 +501,31 @@ document.addEventListener('DOMContentLoaded', function() {
     function initializePage() {
         // 檢查 URL 參數是否有指定的 API 端點
         const urlParams = new URLSearchParams(window.location.search);
-        const apiEndpoint = urlParams.get('api');
-        const particleApi = urlParams.get('particleApi');
+        const reportApiEndpoint = urlParams.get('reportApi');
+        const particleApiEndpoint = urlParams.get('particleApi');
         
-        if (apiEndpoint) {
-            // 如果在 URL 中找到 API 端點，就更新 colabAPIEndpoint 變數
-            colabAPIEndpoint = decodeURIComponent(apiEndpoint);
-            console.log('使用 URL 參數中的 API 端點:', colabAPIEndpoint);
+        if (reportApiEndpoint) {
+            // 如果在 URL 中找到報告生成 API 端點，就更新變數
+            reportGeneratorAPIEndpoint = decodeURIComponent(reportApiEndpoint);
+            console.log('使用 URL 參數中的報告生成 API 端點:', reportGeneratorAPIEndpoint);
         }
         
-        if (particleApi) {
-            // 如果在 URL 中找到粒子分析 API 端點，就更新 particleAPIEndpoint 變數
-            particleAPIEndpoint = decodeURIComponent(particleApi);
-            console.log('使用 URL 參數中的粒子分析 API 端點:', particleAPIEndpoint);
+        if (particleApiEndpoint) {
+            // 如果在 URL 中找到粒子分析 API 端點，就更新變數
+            particleDistributionAPIEndpoint = decodeURIComponent(particleApiEndpoint);
+            console.log('使用 URL 參數中的粒子分析 API 端點:', particleDistributionAPIEndpoint);
         }
         
         // 可選：顯示連接狀態
-        if (apiEndpoint || particleApi) {
+        if (reportApiEndpoint || particleApiEndpoint) {
             const statusElement = document.createElement('div');
             statusElement.className = 'mt-4 p-2 bg-blue-100 text-blue-700 rounded';
             statusElement.innerHTML = `<i class="fas fa-info-circle mr-2"></i>已連接到自定義 API 端點`;
             document.querySelector('main .container').prepend(statusElement);
         }
+        
+        // 初始化跨服務資料傳遞變數
+        window.lastParticleAnalysisId = null;
     }
     
     // 頁面載入後執行初始化
