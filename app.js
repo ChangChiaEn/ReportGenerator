@@ -45,9 +45,14 @@ document.addEventListener('DOMContentLoaded', function() {
     let uploadedParticleDataFiles = [];
     let uploadedParticleImageFiles = [];
     
+    let proxyBaseUrl = 'https://your-cors-proxy-worker.workers.dev';
+    
+    // 原始 API 端點（通過代理訪問）
+    let reportGeneratorAPIEndpoint = proxyBaseUrl + '/report';
+    let particleDistributionAPIEndpoint = proxyBaseUrl + '/particle';
     // API 端點 - 修改為 Render 部署的 API 地址
-    let reportGeneratorAPIEndpoint = 'https://report-generator-api-mnft.onrender.com';
-    let particleDistributionAPIEndpoint = 'https://particle-distribution-api.onrender.com';
+    // let reportGeneratorAPIEndpoint = 'https://report-generator-api-mnft.onrender.com';
+    // let particleDistributionAPIEndpoint = 'https://particle-distribution-api.onrender.com';
     
     // 初始化下載按鈕 - 開始時禁用
     downloadReportBtn.disabled = true;
@@ -299,17 +304,14 @@ document.addEventListener('DOMContentLoaded', function() {
         const progressBar = document.querySelector('.loading-progress');
         let width = 5;
         
-        // 更新進度顯示的函數
+        // 更新進度顯示函數
         function updateProgress(newWidth, message = null) {
             width = newWidth;
             progressBar.style.width = width + '%';
-            if (message) {
+            if (message && document.getElementById('loading-message')) {
                 document.getElementById('loading-message').textContent = message;
             }
         }
-        
-        // 初始階段 - 準備數據
-        updateProgress(5, '準備數據中...');
         
         // 記錄開始時間
         const startTime = Date.now();
@@ -319,26 +321,23 @@ document.addEventListener('DOMContentLoaded', function() {
             const elapsedTime = (Date.now() - startTime) / 1000; // 轉換為秒
             
             if (elapsedTime < 5) {
-                // 0-5 秒：數據處理階段
-                updateProgress(10 + (elapsedTime * 5), '處理數據中...');
-            } else if (elapsedTime < 20) {
-                // 5-20 秒：分析階段
-                updateProgress(35 + ((elapsedTime - 5) * 1.5), '分析數據中...');
-            } else if (elapsedTime < 40) {
-                // 20-40 秒：生成報告階段
-                updateProgress(60 + ((elapsedTime - 20) * 1), '生成報告中...');
-            } else if (elapsedTime < 70) {
-                // 40-70 秒：等待完成階段
-                updateProgress(80 + ((elapsedTime - 40) * 0.3), '完成報告生成...');
+                // 0-5 秒：準備階段
+                updateProgress(10 + (elapsedTime * 3), '準備數據中...');
+            } else if (elapsedTime < 30) {
+                // 5-30 秒：處理階段
+                updateProgress(25 + ((elapsedTime - 5) * 1.5), '處理數據中...');
+            } else if (elapsedTime < 60) {
+                // 30-60 秒：分析階段
+                updateProgress(60 + ((elapsedTime - 30) * 0.6), '生成分析結果中...');
             } else if (width < 90) {
-                // 超過 70 秒：慢速進度
+                // 60秒以上：緩慢進度
                 width += 0.1;
-                updateProgress(width, '伺服器處理中，請耐心等待...');
+                updateProgress(width, '處理中，請稍候...');
             }
             
-            // 超過 3 分鐘顯示提示
+            // 超過 3 分鐘顯示特殊訊息
             if (elapsedTime > 180 && width >= 90) {
-                updateProgress(95, '伺服器響應時間較長，處理中...');
+                updateProgress(95, '處理大量數據中，請耐心等待...');
             }
         }, 1000);
         
@@ -356,54 +355,91 @@ document.addEventListener('DOMContentLoaded', function() {
             formData.append('particleAnalysisId', window.lastParticleAnalysisId);
         }
         
+        // 增加重試機制
+        let retryCount = 0;
+        const maxRetries = 3;
+        let retryDelay = 5000; // 5秒
+        
         // 創建 AbortController 以支持超時設置
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 180000); // 設置 3 分鐘超時
+        let timeoutId = setTimeout(() => controller.abort(), 120000); // 2分鐘超時
         
-        // 使用實際 API 調用並增加超時處理
-        fetch(endpoint, {
-            method: 'POST',
-            body: formData,
-            signal: controller.signal // 使用 AbortController 信號
-        })
-        .then(response => {
-            clearTimeout(timeoutId); // 清除超時計時器
-            if (!response.ok) {
-                throw new Error('伺服器回應錯誤: ' + response.status);
-            }
-            return response.json();
-        })
-        .then(data => {
-            // 更新載入訊息
-            loadingMessage.textContent = '處理完成';
-            document.querySelector('.loading-progress').style.width = '100%';
-            
-            // 如果是粒子分析結果，保存分析ID以便在報告生成時使用
-            if (endpoint === particleDistributionAPIEndpoint && data.analysisId) {
-                window.lastParticleAnalysisId = data.analysisId;
-            }
-            
-            // 延遲隱藏載入區塊，顯示結果區塊
-            setTimeout(() => {
-                loadingSection.classList.add('hidden');
-                resultSection.classList.remove('hidden');
+        function attemptFetch() {
+            fetch(endpoint, {
+                method: 'POST',
+                body: formData,
+                signal: controller.signal
+            })
+            .then(response => {
+                clearTimeout(timeoutId);
+                if (!response.ok) {
+                    throw new Error('伺服器回應錯誤: ' + response.status);
+                }
+                return response.json();
+            })
+            .then(data => {
+                // 更新載入訊息
+                loadingMessage.textContent = '處理完成';
+                document.querySelector('.loading-progress').style.width = '100%';
                 
-                // 處理並顯示結果
-                displayResults(data, endpoint);
-            }, 500);
-        })
-        .catch(error => {
-            clearTimeout(timeoutId); // 清除超時計時器
-            console.error('錯誤:', error);
-            loadingSection.classList.add('hidden');
-            
-            let errorMessage = error.message;
-            if (error.name === 'AbortError') {
-                errorMessage = '請求超時，伺服器回應時間過長，請稍後再試或聯絡管理員';
-            }
-            
-            alert('分析過程中發生錯誤: ' + errorMessage);
-        });
+                // 如果是粒子分析結果，保存分析ID以便在報告生成時使用
+                if (endpoint === particleDistributionAPIEndpoint && data.analysisId) {
+                    window.lastParticleAnalysisId = data.analysisId;
+                }
+                
+                // 延遲隱藏載入區塊，顯示結果區塊
+                setTimeout(() => {
+                    loadingSection.classList.add('hidden');
+                    resultSection.classList.remove('hidden');
+                    
+                    // 處理並顯示結果
+                    displayResults(data, endpoint);
+                }, 500);
+            })
+            .catch(error => {
+                // 清除超時
+                clearTimeout(timeoutId);
+                
+                // 檢查是否需要重試
+                if (retryCount < maxRetries) {
+                    retryCount++;
+                    const waitSeconds = retryDelay / 1000;
+                    console.log(`連接失敗，${waitSeconds}秒後進行第 ${retryCount}/${maxRetries} 次重試...`);
+                    
+                    // 更新載入訊息
+                    loadingMessage.textContent = `連接失敗，${waitSeconds}秒後重試 (${retryCount}/${maxRetries})`;
+                    
+                    // 重設超時控制器
+                    controller = new AbortController();
+                    timeoutId = setTimeout(() => controller.abort(), 120000);
+                    
+                    // 延遲後重試
+                    setTimeout(attemptFetch, retryDelay);
+                    
+                    // 每次重試增加延遲時間（指數退避）
+                    retryDelay *= 1.5;
+                } else {
+                    // 達到最大重試次數
+                    console.error('錯誤:', error);
+                    loadingSection.classList.add('hidden');
+                    
+                    let errorMessage = '分析過程中發生錯誤: ';
+                    
+                    if (error.name === 'AbortError') {
+                        errorMessage += '請求超時，伺服器回應時間過長';
+                    } else if (error.message.includes('Failed to fetch')) {
+                        errorMessage += '無法連接到分析伺服器，請檢查網絡連接或稍後再試';
+                    } else {
+                        errorMessage += error.message;
+                    }
+                    
+                    alert(errorMessage);
+                }
+            });
+        }
+        
+        // 開始首次請求
+        attemptFetch();
     }
     
     // 顯示 API 返回的結果
@@ -598,8 +634,17 @@ function checkAPIStatus() {
     function initializePage() {
         // 檢查 URL 參數是否有指定的 API 端點
         const urlParams = new URLSearchParams(window.location.search);
+        const customProxy = urlParams.get('proxy');
         const reportApiEndpoint = urlParams.get('reportApi');
         const particleApiEndpoint = urlParams.get('particleApi');
+        
+        if (customProxy) {
+            // 如果在 URL 中找到自定義代理，就更新代理 URL
+            proxyBaseUrl = decodeURIComponent(customProxy);
+            reportGeneratorAPIEndpoint = proxyBaseUrl + '/report';
+            particleDistributionAPIEndpoint = proxyBaseUrl + '/particle';
+            console.log('使用自定義代理:', proxyBaseUrl);
+        }
         
         if (reportApiEndpoint) {
             // 如果在 URL 中找到報告生成 API 端點，就更新變數
@@ -614,16 +659,107 @@ function checkAPIStatus() {
         }
         
         // 可選：顯示連接狀態
-        if (reportApiEndpoint || particleApiEndpoint) {
+        if (reportApiEndpoint || particleApiEndpoint || customProxy) {
             const statusElement = document.createElement('div');
             statusElement.className = 'mt-4 p-2 bg-blue-100 text-blue-700 rounded';
             statusElement.innerHTML = `<i class="fas fa-info-circle mr-2"></i>已連接到自定義 API 端點`;
             document.querySelector('main .container').prepend(statusElement);
         }
         
+        // 添加 API 預熱功能
+        preWarmAPIs();
+        
         // 初始化跨服務資料傳遞變數
         window.lastParticleAnalysisId = null;
     }
+    
+    // 添加 API 預熱函數
+    function preWarmAPIs() {
+        // 顯示預熱通知
+        const statusElement = document.createElement('div');
+        statusElement.id = 'prewarm-status';
+        statusElement.className = 'mt-4 p-2 bg-blue-100 text-blue-700 rounded';
+        statusElement.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i>正在連接分析伺服器...`;
+        document.querySelector('main .container').prepend(statusElement);
+        
+        // 預熱報告生成 API
+        fetch(reportGeneratorAPIEndpoint + '/health', { 
+            method: 'GET',
+            cache: 'no-store' 
+        })
+        .then(response => {
+            if (response.ok) {
+                console.log('報告生成 API 預熱成功');
+                checkParticleAPI();
+            } else {
+                throw new Error('報告生成 API 回應錯誤');
+            }
+        })
+        .catch(error => {
+            console.warn('報告生成 API 預熱失敗:', error);
+            statusElement.className = 'mt-4 p-2 bg-yellow-100 text-yellow-700 rounded';
+            statusElement.innerHTML = `<i class="fas fa-exclamation-circle mr-2"></i>伺服器喚醒中，初次使用可能需要較長時間`;
+            // 繼續檢查粒子分析 API
+            checkParticleAPI();
+        });
+        
+        // 檢查粒子分析 API
+        function checkParticleAPI() {
+            fetch(particleDistributionAPIEndpoint + '/health', { 
+                method: 'GET',
+                cache: 'no-store' 
+            })
+            .then(response => {
+                if (response.ok) {
+                    console.log('粒子分析 API 預熱成功');
+                    statusElement.className = 'mt-4 p-2 bg-green-100 text-green-700 rounded';
+                    statusElement.innerHTML = `<i class="fas fa-check-circle mr-2"></i>分析伺服器已就緒`;
+                    // 3秒後隱藏狀態訊息
+                    setTimeout(() => {
+                        statusElement.remove();
+                    }, 3000);
+                } else {
+                    throw new Error('粒子分析 API 回應錯誤');
+                }
+            })
+            .catch(error => {
+                console.warn('粒子分析 API 預熱失敗:', error);
+                statusElement.className = 'mt-4 p-2 bg-yellow-100 text-yellow-700 rounded';
+                statusElement.innerHTML = `<i class="fas fa-exclamation-circle mr-2"></i>伺服器喚醒中，初次使用可能需要較長時間`;
+                // 10秒後隱藏狀態訊息
+                setTimeout(() => {
+                    statusElement.remove();
+                }, 10000);
+            });
+        }
+    }
+
+    function wakeUpServices() {
+        const statusElement = document.createElement('div');
+        statusElement.className = 'mt-4 p-2 bg-blue-100 text-blue-600 rounded';
+        statusElement.innerHTML = '<i class="fas fa-info-circle mr-2"></i>正在喚醒分析伺服器，初次使用可能需要 1-2 分鐘...';
+        document.querySelector('main .container').prepend(statusElement);
+        
+        // 發送 GET 請求喚醒伺服器
+        fetch(reportGeneratorAPIEndpoint + '/health', { method: 'GET' })
+            .then(response => {
+                if (response.ok) {
+                    statusElement.innerHTML = '<i class="fas fa-check-circle mr-2"></i>分析伺服器已就緒';
+                    setTimeout(() => {
+                        statusElement.remove();
+                    }, 3000);
+                } else {
+                    throw new Error('伺服器回應異常');
+                }
+            })
+            .catch(error => {
+                statusElement.className = 'mt-4 p-2 bg-yellow-100 text-yellow-700 rounded';
+                statusElement.innerHTML = '<i class="fas fa-exclamation-circle mr-2"></i>伺服器喚醒中，初次分析可能需要較長時間';
+            });
+    }
+
+    wakeUpServices();
+
 
     checkAPIStatus();
     // 頁面載入後執行初始化
