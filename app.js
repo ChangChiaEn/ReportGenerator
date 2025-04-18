@@ -669,6 +669,12 @@ function checkAPIStatus() {
         // 添加 API 預熱功能
         preWarmAPIs();
         
+        // 在這裡調用 wakeUpServices，確保 DOM 已經載入
+        wakeUpServices();
+        
+        // 在這裡調用 API 狀態檢查
+        checkAPIStatus();
+        
         // 初始化跨服務資料傳遞變數
         window.lastParticleAnalysisId = null;
     }
@@ -758,10 +764,6 @@ function checkAPIStatus() {
             });
     }
 
-    wakeUpServices();
-
-
-    checkAPIStatus();
     // 頁面載入後執行初始化
     initializePage();
 });
