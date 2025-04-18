@@ -681,6 +681,20 @@ function checkAPIStatus() {
     
     // 添加 API 預熱函數
     function preWarmAPIs() {
+        let container = document.querySelector('main .container');
+    
+        // 如果找不到主容器，嘗試找其他可能的容器
+        if (!container) {
+            container = document.querySelector('main');
+            if (!container) {
+                container = document.querySelector('body');
+                if (!container) {
+                    console.error('無法找到有效的容器元素');
+                    return; // 如果連 body 都找不到，就放棄
+                }
+            }
+        }
+
         // 顯示預熱通知
         const statusElement = document.createElement('div');
         statusElement.id = 'prewarm-status';
@@ -711,6 +725,19 @@ function checkAPIStatus() {
         
         // 檢查粒子分析 API
         function checkParticleAPI() {
+            let container = document.querySelector('main .container');
+    
+            if (!container) {
+                container = document.querySelector('main');
+                if (!container) {
+                    container = document.querySelector('body');
+                    if (!container) {
+                        console.error('無法找到有效的容器元素');
+                        return;
+                    }
+                }
+            }
+            
             fetch(particleDistributionAPIEndpoint + '/health', { 
                 method: 'GET',
                 cache: 'no-store' 
@@ -741,6 +768,19 @@ function checkAPIStatus() {
     }
 
     function wakeUpServices() {
+        let container = document.querySelector('main .container');
+    
+        if (!container) {
+            container = document.querySelector('main');
+            if (!container) {
+                container = document.querySelector('body');
+                if (!container) {
+                    console.error('無法找到有效的容器元素');
+                    return;
+                }
+            }
+        }
+
         const statusElement = document.createElement('div');
         statusElement.className = 'mt-4 p-2 bg-blue-100 text-blue-600 rounded';
         statusElement.innerHTML = '<i class="fas fa-info-circle mr-2"></i>正在喚醒分析伺服器，初次使用可能需要 1-2 分鐘...';
